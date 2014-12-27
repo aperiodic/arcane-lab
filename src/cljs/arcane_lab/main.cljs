@@ -49,13 +49,10 @@
           (assoc-in [:selection] selection')
           (dissoc :click?))))))
 
-(defn clear-selection-on-click-action
-  [mouse-down?]
+(defn stop-selection-action
+  [_]
   (fn [state]
-    (cond
-      mouse-down? (assoc state :click? true)
-      (:click? state) (dissoc state :selection :click?)
-      :otherwise state)))
+    (dissoc state :selection)))
 
 (def state-signal
   (let [drag-coords (sig/keep-when mouse/down? [0 0] mouse/position)
@@ -65,12 +62,11 @@
         start-drag (sig/keep-if identity true dragging?)
         stop-drag (sig/keep-if not false dragging?)
         drag-start-coords (sig/sample-on start-drag mouse/position)
-        drag-stop-coords (sig/sample-on stop-drag mouse/position)
         click-state-change (sig/drop-repeats mouse/down?)
         actions (sig/merge
                   (sig/lift start-selection-action drag-start-coords)
+                  (sig/lift stop-selection-action stop-drag)
                   (sig/lift update-selection-action drag-coords)
-                  (sig/lift clear-selection-on-click-action click-state-change)
                   (sig/constant identity))]
     (sig/reducep (fn [state action] (action state))
                  initial-state
