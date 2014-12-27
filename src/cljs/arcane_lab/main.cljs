@@ -49,9 +49,27 @@
 
 (def !app-state (sig/pipe-to-atom state-signal))
 
+(defn render-selection
+  [selection]
+  (if selection
+    (let [{[x1 y1] :start, [x2 y2] :stop} selection
+          [left right] (sort [x1 x2])
+          [top bottom] (sort [y1 y2])]
+      (dom/div #js {:id "selection"
+                    :className "box"
+                    :style #js {:position "absolute"
+                                :top top
+                                :left left
+                                :width (- right left)
+                                :height (- bottom top)}}
+               nil))))
+
 (defn render-state
   [state]
-  (dom/pre nil (.stringify js/JSON (clj->js state) nil 2)))
+  (dom/div nil
+           (render-selection (:selection state))
+           (dom/div #js {:id "hud", :style #js {:position "relative"}}
+                    (dom/pre nil (.stringify js/JSON (clj->js state) nil 2)))))
 
 (om/root
   (fn [app owner]
