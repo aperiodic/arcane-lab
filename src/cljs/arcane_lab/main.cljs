@@ -1,14 +1,17 @@
 (ns arcane-lab.main
-  (:require [om.core :as om :include-macros true]
-            [om.dom :as dom :include-macros true]
-            [cljs.core.async :as async :refer [>! <!]]
+  (:require [cljs.core.async :as async :refer [>! <!]]
+            [cljs-uuid-utils :refer [make-random-uuid]]
             [jamesmacaulay.zelkova.signal :as sig]
             [jamesmacaulay.zelkova.mouse :as mouse]
             [jamesmacaulay.zelkova.time :as time]
-            [jamesmacaulay.async-tools.core :as tools])
+            [jamesmacaulay.async-tools.core :as tools]
+            [om.core :as om :include-macros true]
+            [om.dom :as dom :include-macros true])
   (:require-macros [cljs.core.async.macros :refer [go go-loop]]))
 
 (enable-console-print!)
+
+(def rand-uuid make-random-uuid)
 
 (def card-width 222)
 (def card-height 319)
@@ -17,8 +20,9 @@
 (def half-gutter (quot gutter 2))
 (def pile-stride (quot card-height 9.25))
 
-(def forest
+(defn forest []
   {:name "Forest"
+   :id (rand-uuid)
    :img-src "http://magiccards.info/scans/en/po/205.jpg"
    :width card-width
    :height card-height
@@ -31,7 +35,7 @@
 (def initial-state {:selection nil
                     :cards (for [i (range 7)
                                  :let [dy (* i pile-stride)]]
-                             (card-at forest [half-gutter (+ half-gutter dy)]))})
+                             (card-at (forest) [half-gutter (+ half-gutter dy)]))})
 
 (defn start-selection-action
   [pos]
