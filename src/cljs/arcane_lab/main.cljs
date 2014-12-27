@@ -32,10 +32,13 @@
   [card pos]
   (assoc card :position pos))
 
-(def initial-state {:selection nil
-                    :cards (for [i (range 7)
-                                 :let [dy (* i pile-stride)]]
-                             (card-at (forest) [half-gutter (+ half-gutter dy)]))})
+(def initial-state
+  (let [first-pile (for [i (range 7)
+                         :let [dy (* i pile-stride)]]
+                     (card-at (forest) [half-gutter (+ half-gutter dy)]))]
+    {:piles (into (sorted-map)
+                  [[half-gutter (into (sorted-map)
+                                      [[half-gutter first-pile]])]])}))
 
 (defn start-selection-action
   [pos]
@@ -102,6 +105,12 @@
                               :top y}}
              (dom/img #js {:src img-src, :title name, :width width, :height height}))))
 
+(defn render-pile
+  [pile]
+  (let [cards-top-to-bottom (sort-by #(get-in % [:position 1]) pile)]
+    (apply dom/div #js {:className "card"}
+           (map render-card cards-top-to-bottom))))
+
 (defn render-hud
   [state]
   (dom/div #js {:id "hud", :style #js {:position "relative"}}
@@ -111,9 +120,9 @@
 
 (defn render-state
   [state]
-  (let [cards-top-to-bottom (sort-by #(get-in % [:position 1]) (:cards state))]
+  (let [piles (mapcat vals (-> state :piles vals))]
     (dom/div nil
-             (apply dom/div nil (map render-card cards-top-to-bottom))
+             (apply dom/div nil (map render-pile piles))
              (render-selection (:selection state)))))
 
 (om/root
