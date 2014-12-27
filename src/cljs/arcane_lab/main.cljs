@@ -102,6 +102,13 @@
                               :top y}}
              (dom/img #js {:src img-src, :title name, :width width, :height height}))))
 
+(defn render-hud
+  [state]
+  (dom/div #js {:id "hud", :style #js {:position "relative"}}
+           (dom/pre nil
+                    (dom/b nil
+                           (.stringify js/JSON (clj->js state) nil 2)))))
+
 (defn render-state
   [state]
   (let [cards-top-to-bottom (sort-by #(get-in % [:position 1]) (:cards state))]
