@@ -107,11 +107,7 @@
   (let [cards-top-to-bottom (sort-by #(get-in % [:position 1]) (:cards state))]
     (dom/div nil
              (apply dom/div nil (map render-card cards-top-to-bottom))
-             (render-selection (:selection state))
-             (dom/div #js {:id "hud", :style #js {:position "relative"}}
-                      (dom/pre nil
-                               (dom/b nil
-                                      (.stringify js/JSON (clj->js state) nil 2)))))))
+             (render-selection (:selection state)))))
 
 (om/root
   (fn [app owner]
