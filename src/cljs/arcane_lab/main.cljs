@@ -19,22 +19,30 @@
   (fn [state]
     (assoc state
            :cards []
-           :selection {:start-coord pos})))
+           :selection {:start pos, :stop pos})))
+
+(defn update-selection-action
+  [pos]
+  (fn [{:keys [selection] :as state}]
+    (if-not selection
+      (println "error: no selection found to update")
+      (let [selection' (assoc selection :stop pos)]
+        (assoc-in state [:selection] selection')))))
 
 (def state-signal
   (let [drag-coords (sig/keep-when mouse/down? [0 0] mouse/position)
-        dragging? (->> (sig/constant true)
-                    (sig/sample-on drag-coords)
-                    (sig/merge (sig/keep-if not false mouse/down?))
-                    sig/drop-repeats)
+        dragging? (let [true-on-dragmove (sig/sample-on drag-coords (sig/constant true))]
+                    (->> (sig/merge (sig/keep-if not false mouse/down?) true-on-dragmove)
+                      sig/drop-repeats))
         start-drag (sig/keep-if identity true dragging?)
         stop-drag (sig/keep-if not false dragging?)
-        click-coords (sig/sample-on mouse/clicks mouse/position)
         drag-start-coords (sig/sample-on start-drag mouse/position)
-        actions (sig/log
-                  (sig/merge
-                    (sig/constant identity)
-                    (sig/lift start-selection-action drag-start-coords)))]
+        drag-stop-coords (sig/sample-on stop-drag mouse/position)
+        actions (sig/merge
+                  (sig/lift start-selection-action drag-start-coords)
+                  (sig/lift update-selection-action drag-coords)
+                  (sig/constant identity))
+                  ]
     (sig/reducep (fn [state action] (action state))
                  initial-state
                  actions)))
