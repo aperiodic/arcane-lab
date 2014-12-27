@@ -45,7 +45,17 @@
     (if-not selection
       (println "error: no selection found to update")
       (let [selection' (assoc selection :stop pos)]
-        (assoc-in state [:selection] selection')))))
+        (-> state
+          (assoc-in [:selection] selection')
+          (dissoc :click?))))))
+
+(defn clear-selection-on-click-action
+  [mouse-down?]
+  (fn [state]
+    (cond
+      mouse-down? (assoc state :click? true)
+      (:click? state) (dissoc state :selection :click?)
+      :otherwise state)))
 
 (def state-signal
   (let [drag-coords (sig/keep-when mouse/down? [0 0] mouse/position)
@@ -56,11 +66,12 @@
         stop-drag (sig/keep-if not false dragging?)
         drag-start-coords (sig/sample-on start-drag mouse/position)
         drag-stop-coords (sig/sample-on stop-drag mouse/position)
+        click-state-change (sig/drop-repeats mouse/down?)
         actions (sig/merge
                   (sig/lift start-selection-action drag-start-coords)
                   (sig/lift update-selection-action drag-coords)
-                  (sig/constant identity))
-                  ]
+                  (sig/lift clear-selection-on-click-action click-state-change)
+                  (sig/constant identity))]
     (sig/reducep (fn [state action] (action state))
                  initial-state
                  actions)))
