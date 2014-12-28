@@ -42,7 +42,7 @@
   ([card x y] (assoc card :x x :y y)))
 
 ;;
-;; Pile Manipulation
+;; Piles
 ;;
 
 (defn add-pile
@@ -50,10 +50,11 @@
   (let [x (->> (map :x cards) sort first)
         y (->> (map :y cards) sort first)
         cards' (map-indexed (fn [i card] (assoc card :x x, :y (+ y (* i pile-stride))))
-                            cards)]
+                            cards)
+        pile {:x x, :y y, :cards cards'}]
     (-> state
       (update-in [:piles x] (fnil identity (sorted-map)))
-      (assoc-in [:piles x y] cards'))))
+      (assoc-in [:piles x y] pile))))
 
 ;;
 ;; State Actions
@@ -136,7 +137,8 @@
 
 (defn render-pile
   [pile]
-  (let [cards-top-to-bottom (sort-by :y pile)]
+  (let [{cards :cards} pile
+        cards-top-to-bottom (sort-by :y cards)]
     (apply dom/div #js {:className "card"}
            (map render-card cards-top-to-bottom))))
 
