@@ -9,9 +9,13 @@
             [om.dom :as dom :include-macros true])
   (:require-macros [cljs.core.async.macros :refer [go go-loop]]))
 
+(def rand-uuid make-random-uuid)
+
 (enable-console-print!)
 
-(def rand-uuid make-random-uuid)
+;;
+;; Constants
+;;
 
 (def card-width 222)
 (def card-height 319)
@@ -20,25 +24,40 @@
 (def half-gutter (quot gutter 2))
 (def pile-stride (quot card-height 9.25))
 
+;;
+;; Card-Generating Functions
+;;
+
 (defn forest []
   {:name "Forest"
    :id (rand-uuid)
    :img-src "http://magiccards.info/scans/en/po/205.jpg"
    :width card-width
    :height card-height
-   :position [half-gutter half-gutter]})
+   :x half-gutter
+   :y half-gutter})
 
 (defn card-at
-  [card pos]
-  (assoc card :position pos))
+  ([card [x y]] (card-at card x y))
+  ([card x y] (assoc card :x x :y y)))
 
-(def initial-state
-  (let [first-pile (for [i (range 7)
-                         :let [dy (* i pile-stride)]]
-                     (card-at (forest) [half-gutter (+ half-gutter dy)]))]
-    {:piles (into (sorted-map)
-                  [[half-gutter (into (sorted-map)
-                                      [[half-gutter first-pile]])]])}))
+;;
+;; Pile Manipulation
+;;
+
+(defn add-pile
+  [state cards]
+  (let [x (->> (map :x cards) sort first)
+        y (->> (map :y cards) sort first)
+        cards' (map-indexed (fn [i card] (assoc card :x x, :y (+ y (* i pile-stride))))
+                            cards)]
+    (-> state
+      (update-in [:piles x] (fnil identity (sorted-map)))
+      (assoc-in [:piles x y] cards'))))
+
+;;
+;; State Actions
+;;
 
 (defn start-selection-action
   [pos]
@@ -61,6 +80,14 @@
   (fn [state]
     (dissoc state :selection)))
 
+;;
+;; Signal Graph
+;;
+
+(def initial-state
+  (let [blank {:piles (sorted-map)}]
+    (add-pile blank (repeatedly 7 forest))))
+
 (def state-signal
   (let [drag-coords (sig/keep-when mouse/down? [0 0] mouse/position)
         dragging? (let [true-on-dragmove (sig/sample-on drag-coords (sig/constant true))]
@@ -79,7 +106,9 @@
                  initial-state
                  actions)))
 
-(def !app-state (sig/pipe-to-atom state-signal))
+;;
+;; Rendering
+;;
 
 (defn render-selection
   [selection]
@@ -98,7 +127,7 @@
 
 (defn render-card
   [card]
-  (let [{:keys [name img-src width height], [x y] :position} card]
+  (let [{:keys [name img-src width height x y]} card]
     (dom/div #js {:className "card"
                   :style #js {:position "absolute"
                               :left x
@@ -107,7 +136,7 @@
 
 (defn render-pile
   [pile]
-  (let [cards-top-to-bottom (sort-by #(get-in % [:position 1]) pile)]
+  (let [cards-top-to-bottom (sort-by :y pile)]
     (apply dom/div #js {:className "card"}
            (map render-card cards-top-to-bottom))))
 
@@ -124,6 +153,12 @@
     (dom/div nil
              (apply dom/div nil (map render-pile piles))
              (render-selection (:selection state)))))
+
+;;
+;; Om App
+;;
+
+(def !app-state (sig/pipe-to-atom state-signal))
 
 (om/root
   (fn [app owner]
