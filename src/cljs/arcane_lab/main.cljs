@@ -45,6 +45,12 @@
 ;; Piles
 ;;
 
+(defn pile-height
+  [{:keys [cards] :as pile}]
+  ;; by induction, each card besides the first is covered by the previous
+  (let [covered (dec (count cards))]
+    (+ card-height (* pile-stride covered))))
+
 (defn add-pile
   [state cards]
   (let [x (->> (map :x cards) sort first)
@@ -55,6 +61,32 @@
     (-> state
       (update-in [:piles x] (fnil identity (sorted-map)))
       (assoc-in [:piles x y] pile))))
+
+;;
+;; Selection Filtering
+;;
+
+(defn selected-piles
+  [selection pile-grid]
+  (let [{[x1 y1] :start, [x2 y2] :stop} selection
+        [l r] (sort [x1 x2])
+        [t b] (sort [y1 y2])
+        min-pile-x (- l card-width)
+        x-pass-piles (loop [columns (seq pile-grid), piles []]
+                       (if-let [[x column] (first columns)]
+                         (cond
+                           (> x r) piles
+                           (< x min-pile-x) (recur (next columns) piles)
+                           :otherwise ; x is in range [min-pile-x, r]
+                           (recur (next columns) (concat piles (vals column))))
+                         ;; else (no more columns)
+                         piles))
+        selected? (fn [{y :y, :as pile}]
+                    (let [height (pile-height pile)]
+                      (and
+                        (not (> y b))
+                        (not (< (+ y height) t)))))]
+    (filter selected? x-pass-piles)))
 
 ;;
 ;; State Actions
@@ -68,10 +100,12 @@
 
 (defn update-selection-action
   [pos]
-  (fn [{:keys [selection] :as state}]
-    (if-not selection
-      (println "error: no selection found to update")
-      (let [selection' (assoc selection :stop pos)]
+  (fn [{:keys [piles selection] :as state}]
+    (if selection
+      (let [selection' (assoc selection :stop pos)
+            pile-hits (selected-piles selection' piles)]
+        (doseq [{:keys [x y]} pile-hits]
+          (println "hit pile at" (str "(" x "," y ")")))
         (-> state
           (assoc-in [:selection] selection')
           (dissoc :click?))))))
