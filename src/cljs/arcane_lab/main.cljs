@@ -242,10 +242,11 @@
 
 (defn render-hud
   [state]
-  (dom/div #js {:id "hud", :style #js {:position "relative"}}
-           (dom/pre nil
-                    (dom/b nil
-                           (.stringify js/JSON (clj->js state) nil 2)))))
+  (let [cardless (dissoc state :piles)]
+    (dom/div #js {:id "hud", :style #js {:position "relative"}}
+             (dom/pre nil
+                      (dom/b nil
+                             (.stringify js/JSON (clj->js cardless) nil 2))))))
 
 (defn render-state
   [state]
