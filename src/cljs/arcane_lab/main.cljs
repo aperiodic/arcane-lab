@@ -160,8 +160,13 @@
 
 (defn stop-selection-action
   [_]
-  (fn [state]
-    (dissoc state :selection)))
+  (fn [{:keys [selection piles] :as state}]
+    (-> (reduce (fn [state {x :x, y :y, :as pile'}]
+                  (assoc-in state [:piles x y] pile'))
+                state
+                (map (partial pile-after-selection selection)
+                     (selected-piles selection piles)))
+      (dissoc :selection))))
 
 ;;
 ;; Signal Graph
