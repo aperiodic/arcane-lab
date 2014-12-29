@@ -33,7 +33,8 @@
    :id (rand-uuid)
    :img-src "http://magiccards.info/scans/en/po/205.jpg"
    :x half-gutter
-   :y half-gutter})
+   :y half-gutter
+   :selected? false})
 
 (defn card-at
   ([card [x y]] (card-at card x y))
@@ -105,15 +106,14 @@
                              (not (< (+ y height) t)))))]
       (filter selected? x-pass-piles))))
 
-(defn selected-cards
-  "Given a selection and a pile that intersects that selection, returns the
-  cards in the pile that are selected. Will yield false positives if the pile
-  does not actually intersect the selection."
-  [selection selected-pile]
-  (if-not selection
-    []
+(defn pile-after-selection
+  "Given a selection and a pile returns a new pile with the cards that the
+  selection hits marked by setting their :selected? field to true."
+  [selection pile]
+  (if (or (not selection) (not (pile-selected? selection pile)))
+    pile
     (let [[l r t b] (selection-edges selection)
-          {cards :cards} selected-pile
+          {cards :cards} pile
           uncovered (last cards)
           select-uncovd? (let [{y :y} uncovered]
                            (and (not (> y b))
@@ -122,10 +122,22 @@
           covd-selected? (fn [{y :y}]
                            (and (not (> y b))
                                 (not (< (+ y pile-stride) t))))
-          selected-covd-cards (filter covd-selected? covered)]
-      (if select-uncovd?
-        (concat selected-covd-cards (list uncovered))
-        selected-covd-cards))))
+          selected-covd-ids (->> (filter covd-selected? covered) (map :id))
+          selected-ids (if select-uncovd?
+                         (concat selected-covd-ids (list (:id uncovered)))
+                         selected-covd-ids)
+          cards' (loop [cs cards, slctd-ids selected-ids, cs' []]
+                   (if-let [{:keys [id] :as c} (first cs)]
+                     (let [selected? (= id (first slctd-ids))
+                           c' (if selected?
+                                (assoc c :selected? true)
+                                c)]
+                       (if selected?
+                         (recur (next cs) (next slctd-ids) (conj cs' c'))
+                         (recur (next cs) slctd-ids (conj cs' c'))))
+                     ;; else (no more cards)
+                     cs'))]
+      (assoc pile :cards cards'))))
 
 ;;
 ;; State Actions
@@ -195,8 +207,8 @@
                nil))))
 
 (defn render-card
-  [card selected?]
-  (let [{:keys [name img-src x y]} card]
+  [card]
+  (let [{:keys [name img-src x y selected?]} card]
     (dom/div #js {:className (str "card" (if selected? " selected"))
                   :style #js {:position "absolute"
                               :left x
@@ -206,20 +218,9 @@
 
 (defn render-pile
   [pile selection]
-  (let [{cards :cards} pile]
+  (let [{cards :cards} (pile-after-selection selection pile)]
     (apply dom/div #js {:className "pile"}
-           (if-not (pile-selected? selection pile)
-             (map #(render-card % false) cards)
-             (let [selected-ids (map :id (selected-cards selection pile))]
-               (loop [cards cards, rem-slctd-ids selected-ids, divs []]
-                 (if-let [{:keys [id] :as card} (first cards)]
-                   (let [selected? (= id (first rem-slctd-ids))
-                         divs' (conj divs (render-card card selected?))]
-                     (if selected?
-                       (recur (next cards) (next rem-slctd-ids) divs')
-                       (recur (next cards) rem-slctd-ids divs')))
-                   ;; else (no more cards)
-                   divs)))))))
+           (map render-card cards))))
 
 (defn render-hud
   [state]
