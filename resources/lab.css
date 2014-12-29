@@ -11,6 +11,10 @@ body, div, img {
        -o-user-select: none;
 }
 
+img {
+  pointer-events: none;
+}
+
 #selection, .selected {
   outline: 2px solid #2f7b8a;
 }
