@@ -7,7 +7,7 @@
   outline: 2px solid #2f7b8a;
 }
 
-#app {
+body, div, img {
           user-select: none;
      -moz-user-select: -moz-none;
    -khtml-user-select: none;
