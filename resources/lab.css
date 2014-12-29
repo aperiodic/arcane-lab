@@ -3,14 +3,18 @@
   -moz-box-sizing: border-box;
 }
 
-#selection, .selected {
-  outline: 2px solid #2f7b8a;
-}
-
 body, div, img {
           user-select: none;
      -moz-user-select: -moz-none;
    -khtml-user-select: none;
   -webkit-user-select: none;
        -o-user-select: none;
+}
+
+#selection, .selected {
+  outline: 2px solid #2f7b8a;
+}
+
+#hud {
+  background: rgba(255,255,255, 0.6);
 }
