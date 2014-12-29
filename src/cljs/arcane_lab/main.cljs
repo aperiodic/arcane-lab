@@ -32,8 +32,6 @@
   {:name "Forest"
    :id (rand-uuid)
    :img-src "http://magiccards.info/scans/en/po/205.jpg"
-   :width card-width
-   :height card-height
    :x half-gutter
    :y half-gutter})
 
@@ -66,27 +64,68 @@
 ;; Selection Filtering
 ;;
 
+(defn selection-edges
+  "Given a selection, return the left & right x values and the top & bottom
+  y values, in a vector in that order ([l r t b])."
+  [selection]
+  (let [{[x1 y1] :start, [x2 y2] :stop} selection]
+    (vec (concat (sort [x1 x2])
+                 (sort [y1 y2])))))
+
+(defn pile-selected?
+  [selection pile]
+  (and (boolean selection)
+       (let [[l r t b] (selection-edges selection)
+             {x :x, y :y} pile
+             height (pile-height pile)]
+         (and
+           (not (> x r)) ; pile is not to the right of the selection
+           (not (< x (- l card-width))) ; pile is not to the left of the selection
+           (not (> y b)) ; pile is not below the selection
+           (not (< y (- t height))))))) ; pile is not above the selection
+
 (defn selected-piles
   [selection pile-grid]
-  (let [{[x1 y1] :start, [x2 y2] :stop} selection
-        [l r] (sort [x1 x2])
-        [t b] (sort [y1 y2])
-        min-pile-x (- l card-width)
-        x-pass-piles (loop [columns (seq pile-grid), piles []]
-                       (if-let [[x column] (first columns)]
-                         (cond
-                           (> x r) piles
-                           (< x min-pile-x) (recur (next columns) piles)
-                           :otherwise ; x is in range [min-pile-x, r]
-                           (recur (next columns) (concat piles (vals column))))
-                         ;; else (no more columns)
-                         piles))
-        selected? (fn [{y :y, :as pile}]
-                    (let [height (pile-height pile)]
-                      (and
-                        (not (> y b))
-                        (not (< (+ y height) t)))))]
-    (filter selected? x-pass-piles)))
+  (if-not selection
+    []
+    (let [[l r t b] (selection-edges selection)
+          min-pile-x (- l card-width)
+          x-pass-piles (loop [columns (seq pile-grid), piles []]
+                         (if-let [[x column] (first columns)]
+                           (cond
+                             (> x r) piles
+                             (< x min-pile-x) (recur (next columns) piles)
+                             :otherwise ; x is in range [min-pile-x, r]
+                             (recur (next columns) (concat piles (vals column))))
+                           ;; else (no more columns)
+                           piles))
+          selected? (fn [{y :y, :as pile}]
+                      (let [height (pile-height pile)]
+                        (and (not (> y b))
+                             (not (< (+ y height) t)))))]
+      (filter selected? x-pass-piles))))
+
+(defn selected-cards
+  "Given a selection and a pile that intersects that selection, returns the
+  cards in the pile that are selected. Will yield false positives if the pile
+  does not actually intersect the selection."
+  [selection selected-pile]
+  (if-not selection
+    []
+    (let [[l r t b] (selection-edges selection)
+          {cards :cards} selected-pile
+          uncovered (last cards)
+          select-uncovd? (let [{y :y} uncovered]
+                           (and (not (> y b))
+                                (not (< (+ y card-height) t))))
+          covered (butlast cards)
+          covd-selected? (fn [{y :y}]
+                           (and (not (> y b))
+                                (not (< (+ y pile-stride) t))))
+          selected-covd-cards (filter covd-selected? covered)]
+      (if select-uncovd?
+        (concat selected-covd-cards (list uncovered))
+        selected-covd-cards))))
 
 ;;
 ;; State Actions
@@ -102,10 +141,7 @@
   [pos]
   (fn [{:keys [piles selection] :as state}]
     (if selection
-      (let [selection' (assoc selection :stop pos)
-            pile-hits (selected-piles selection' piles)]
-        (doseq [{:keys [x y]} pile-hits]
-          (println "hit pile at" (str "(" x "," y ")")))
+      (let [selection' (assoc selection :stop pos)]
         (-> state
           (assoc-in [:selection] selection')
           (dissoc :click?))))))
@@ -148,9 +184,7 @@
 (defn render-selection
   [selection]
   (if selection
-    (let [{[x1 y1] :start, [x2 y2] :stop} selection
-          [left right] (sort [x1 x2])
-          [top bottom] (sort [y1 y2])]
+    (let [[left right top bottom] (selection-edges selection)]
       (dom/div #js {:id "selection"
                     :className "box"
                     :style #js {:position "absolute"
@@ -161,20 +195,31 @@
                nil))))
 
 (defn render-card
-  [card]
-  (let [{:keys [name img-src width height x y]} card]
-    (dom/div #js {:className "card"
+  [card selected?]
+  (let [{:keys [name img-src x y]} card]
+    (dom/div #js {:className (str "card" (if selected? " selected"))
                   :style #js {:position "absolute"
                               :left x
                               :top y}}
-             (dom/img #js {:src img-src, :title name, :width width, :height height}))))
+             (dom/img #js {:src img-src, :title name
+                           :width card-width, :height card-height}))))
 
 (defn render-pile
-  [pile]
-  (let [{cards :cards} pile
-        cards-top-to-bottom (sort-by :y cards)]
-    (apply dom/div #js {:className "card"}
-           (map render-card cards-top-to-bottom))))
+  [pile selection]
+  (let [{cards :cards} pile]
+    (apply dom/div #js {:className "pile"}
+           (if-not (pile-selected? selection pile)
+             (map #(render-card % false) cards)
+             (let [selected-ids (map :id (selected-cards selection pile))]
+               (loop [cards cards, rem-slctd-ids selected-ids, divs []]
+                 (if-let [{:keys [id] :as card} (first cards)]
+                   (let [selected? (= id (first rem-slctd-ids))
+                         divs' (conj divs (render-card card selected?))]
+                     (if selected?
+                       (recur (next cards) (next rem-slctd-ids) divs')
+                       (recur (next cards) rem-slctd-ids divs')))
+                   ;; else (no more cards)
+                   divs)))))))
 
 (defn render-hud
   [state]
@@ -185,10 +230,11 @@
 
 (defn render-state
   [state]
-  (let [piles (mapcat vals (-> state :piles vals))]
+  (let [{selection :selection} state
+        piles (mapcat vals (-> state :piles vals))]
     (dom/div nil
-             (apply dom/div nil (map render-pile piles))
-             (render-selection (:selection state)))))
+             (apply dom/div nil (map #(render-pile % selection) piles))
+             (render-selection selection))))
 
 ;;
 ;; Om App
