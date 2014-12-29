@@ -110,8 +110,14 @@
   "Given a selection and a pile returns a new pile with the cards that the
   selection hits marked by setting their :selected? field to true."
   [selection pile]
-  (if (or (not selection) (not (pile-selected? selection pile)))
+  (cond
+    (not selection)
     pile
+
+    (not (pile-selected? selection pile))
+    (update-in pile [:cards] (partial mapv #(assoc % :selected? false)))
+
+    :otherwise
     (let [[l r t b] (selection-edges selection)
           {cards :cards} pile
           uncovered (last cards)
@@ -143,11 +149,22 @@
 ;; State Actions
 ;;
 
+(defn apply-selection
+  [state selection]
+  (let [{piles :piles} state]
+    (reduce (fn [state {x :x, y :y, :as pile'}]
+              (assoc-in state [:piles x y] pile'))
+            state
+            (map (partial pile-after-selection selection)
+                 (mapcat vals (vals piles))))))
+
 (defn start-selection-action
   [pos]
   (fn [state]
-    (assoc state
-           :selection {:start pos, :stop pos})))
+    (let [selection {:start pos, :stop pos}]
+      (-> state
+        (apply-selection selection)
+        (assoc :selection selection)))))
 
 (defn update-selection-action
   [pos]
@@ -155,17 +172,13 @@
     (if selection
       (let [selection' (assoc selection :stop pos)]
         (-> state
-          (assoc-in [:selection] selection')
-          (dissoc :click?))))))
+          (assoc-in [:selection] selection'))))))
 
 (defn stop-selection-action
   [_]
   (fn [{:keys [selection piles] :as state}]
-    (-> (reduce (fn [state {x :x, y :y, :as pile'}]
-                  (assoc-in state [:piles x y] pile'))
-                state
-                (map (partial pile-after-selection selection)
-                     (selected-piles selection piles)))
+    (-> state
+      (apply-selection selection)
       (dissoc :selection))))
 
 ;;
