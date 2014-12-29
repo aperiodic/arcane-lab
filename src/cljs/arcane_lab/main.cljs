@@ -31,7 +31,7 @@
 (defn forest []
   {:name "Forest"
    :id (rand-uuid)
-   :img-src "http://magiccards.info/scans/en/po/205.jpg"
+   :img-src "forest.jpg"
    :x half-gutter
    :y half-gutter
    :selected? false})
