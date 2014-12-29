@@ -232,8 +232,8 @@
   [state]
   (let [{selection :selection} state
         piles (mapcat vals (-> state :piles vals))]
-    (dom/div nil
-             (apply dom/div nil (map #(render-pile % selection) piles))
+    (dom/div #js {:id "dom-root"}
+             (apply dom/div {:id "piles"} (map #(render-pile % selection) piles))
              (render-selection selection))))
 
 ;;
