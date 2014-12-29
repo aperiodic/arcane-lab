@@ -135,9 +135,7 @@
           cards' (loop [cs cards, slctd-ids selected-ids, cs' []]
                    (if-let [{:keys [id] :as c} (first cs)]
                      (let [selected? (= id (first slctd-ids))
-                           c' (if selected?
-                                (assoc c :selected? true)
-                                c)]
+                           c' (assoc c :selected? selected?)]
                        (if selected?
                          (recur (next cs) (next slctd-ids) (conj cs' c'))
                          (recur (next cs) slctd-ids (conj cs' c'))))
@@ -149,37 +147,67 @@
 ;; State Actions
 ;;
 
+(defn drag-start-action
+  [pos]
+  (fn [{:keys [piles] :as state}]
+    (let [selected-cards (->> (vals piles)
+                           (mapcat vals)
+                           (mapcat :cards)
+                           (filter :selected?))
+          xs (sort (map :x selected-cards))
+          l (first xs)
+          r (+ (last xs) card-width)
+          ys (sort (map :y selected-cards))
+          t (first ys)
+          b (+ (last ys) card-height)
+          [x y] pos
+          drag-start? (and (not (> x r))
+                           (not (< x l))
+                           (not (> y b))
+                           (not (< y t)))]
+      (if-not drag-start?
+        (dissoc state :drag)
+        (let [card-ids (set (map :id selected-cards))]
+          (assoc state :drag {:card-ids card-ids}))))))
+
 (defn apply-selection
   [state selection]
   (let [{piles :piles} state]
-    (reduce (fn [state {x :x, y :y, :as pile'}]
+    (if-not selection
+      state
+      (reduce (fn [state {x :x, y :y, :as pile'}]
               (assoc-in state [:piles x y] pile'))
             state
             (map (partial pile-after-selection selection)
-                 (mapcat vals (vals piles))))))
+                 (mapcat vals (vals piles)))))))
 
-(defn start-selection-action
+(defn start-selection-if-not-dragging-action
   [pos]
   (fn [state]
-    (let [selection {:start pos, :stop pos}]
-      (-> state
-        (apply-selection selection)
-        (assoc :selection selection)))))
-
-(defn update-selection-action
-  [pos]
-  (fn [{:keys [piles selection] :as state}]
-    (if selection
-      (let [selection' (assoc selection :stop pos)]
+    (if (:drag state)
+      state
+      (let [selection {:start pos, :stop pos}]
         (-> state
-          (assoc-in [:selection] selection'))))))
+          (apply-selection selection)
+          (assoc :selection selection))))))
 
-(defn stop-selection-action
+(defn update-selection-or-drag-destination-action
+  [pos]
+  (fn [{:keys [piles selection drag] :as state}]
+    (cond
+      selection (update-in state [:selection] assoc :stop pos)
+      drag (update-in state [:drag] assoc :to pos)
+      :otherwise state)))
+
+(defn stop-selection-or-drag-action
   [_]
-  (fn [{:keys [selection piles] :as state}]
-    (-> state
-      (apply-selection selection)
-      (dissoc :selection))))
+  (fn [{:keys [selection drag piles] :as state}]
+    (cond
+      selection (-> state
+                  (apply-selection selection)
+                  (dissoc :selection))
+      drag (dissoc state :drag)
+      :otherwise state)))
 
 ;;
 ;; Signal Graph
@@ -197,11 +225,13 @@
         start-drag (sig/keep-if identity true dragging?)
         stop-drag (sig/keep-if not false dragging?)
         drag-start-coords (sig/sample-on start-drag mouse/position)
-        click-state-change (sig/drop-repeats mouse/down?)
+        click-down (sig/keep-if identity true (sig/drop-repeats mouse/down?))
+        click-down-coords (sig/sample-on click-down mouse/position)
         actions (sig/merge
-                  (sig/lift start-selection-action drag-start-coords)
-                  (sig/lift stop-selection-action stop-drag)
-                  (sig/lift update-selection-action drag-coords)
+                  (sig/lift start-selection-if-not-dragging-action drag-start-coords)
+                  (sig/lift stop-selection-or-drag-action stop-drag)
+                  (sig/lift update-selection-or-drag-destination-action drag-coords)
+                  (sig/lift drag-start-action click-down-coords)
                   (sig/constant identity))]
     (sig/reducep (fn [state action] (action state))
                  initial-state
