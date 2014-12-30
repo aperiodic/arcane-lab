@@ -62,8 +62,17 @@
       (assoc-in [:piles x y] pile))))
 
 ;;
-;; Selection Filtering
+;; Selection / Geometric Filtering
 ;;
+
+(defn within?
+  "Returns true if the point at (x,y) is within the box defined by left, right,
+  top, and bottom."
+  [left right top bottom x y]
+  (and (not (> x right))  ; the point is not to the right of the box
+       (not (< x left))   ; the point is not to the left of the box
+       (not (> y bottom)) ; the point is not below the box
+       (not (< y top))))  ; the point is not above the box
 
 (defn selection-edges
   "Given a selection, return the left & right x values and the top & bottom
@@ -79,11 +88,7 @@
        (let [[l r t b] (selection-edges selection)
              {x :x, y :y} pile
              height (pile-height pile)]
-         (and
-           (not (> x r)) ; pile is not to the right of the selection
-           (not (< x (- l card-width))) ; pile is not to the left of the selection
-           (not (> y b)) ; pile is not below the selection
-           (not (< y (- t height))))))) ; pile is not above the selection
+         (within? (- l card-width) r (- t height) b x y))))
 
 (defn selected-piles
   [selection pile-grid]
