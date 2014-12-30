@@ -155,24 +155,26 @@
 (defn drag-start-action
   [pos]
   (fn [{:keys [piles] :as state}]
-    (let [selected-cards (->> (vals piles)
-                           (mapcat vals)
-                           (mapcat :cards)
-                           (filter :selected?))
-          xs (sort (map :x selected-cards))
-          l (first xs)
-          r (+ (last xs) card-width)
-          ys (sort (map :y selected-cards))
-          t (first ys)
-          b (+ (last ys) card-height)
+    (let [piles-w-selected-cards (->> (vals piles)
+                                   (mapcat vals)
+                                   (filter #(some :selected? (:cards %))))
           [x y] pos
-          drag-start? (and (not (> x r))
-                           (not (< x l))
-                           (not (> y b))
-                           (not (< y t)))]
+          drag-start? (loop [ps piles-w-selected-cards]
+                        (if-let [{l :x, pt :y, cards :cards, :as p} (first ps)]
+                          (let [r (+ l card-width)
+                                t (-> (filter :selected? cards) first :y)
+                                b (+ pt (pile-height p))]
+                            (if (within? l r t b x y)
+                              true
+                              (recur (next ps))))
+                          ;; else (no more piles)
+                          false))]
       (if-not drag-start?
         (dissoc state :drag)
-        (let [card-ids (set (map :id selected-cards))]
+        (let [card-ids (->> (mapcat :cards piles-w-selected-cards)
+                         (filter :selected?)
+                         (map :id)
+                         set)]
           (assoc state :drag {:card-ids card-ids}))))))
 
 (defn apply-selection
