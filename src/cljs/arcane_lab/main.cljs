@@ -50,16 +50,28 @@
   (let [covered (dec (count cards))]
     (+ card-height (* pile-stride covered))))
 
+(defn make-pile
+  ([cards] (make-pile cards
+                      (-> (map :x cards) sort first)
+                      (-> (map :y cards) sort first)))
+  ([cards x y]
+   (let [reposition (fn [i card] (assoc card :x x, :y (+ y (* i pile-stride))))
+         repositioned (map-indexed reposition cards)]
+     {:cards repositioned, :x x, :y y})))
+
 (defn add-pile
-  [state cards]
-  (let [x (->> (map :x cards) sort first)
-        y (->> (map :y cards) sort first)
-        cards' (map-indexed (fn [i card] (assoc card :x x, :y (+ y (* i pile-stride))))
-                            cards)
-        pile {:x x, :y y, :cards cards'}]
+  [state pile]
+  (let [{:keys [x y]} pile]
     (-> state
-      (update-in [:piles x] (fnil identity (sorted-map)))
-      (assoc-in [:piles x y] pile))))
+       (update-in [:piles x] (fnil identity (sorted-map)))
+       (assoc-in [:piles x y] pile))))
+
+(defn remove-pile
+  [state x y]
+  (let [column (get-in state [:piles x])]
+    (if (and (contains? column y) (= (count column) 1))
+      (update-in state [:piles] dissoc x)
+      (update-in state [:piles x] dissoc y))))
 
 ;;
 ;; Selection / Geometric Filtering
@@ -148,18 +160,24 @@
                      cs'))]
       (assoc pile :cards cards'))))
 
+(defn drag-pile-pos
+  "Given the mouse's x & y coordinates, return the position of the drag pile
+  such that the mouse is in the center."
+  [x y]
+  [(- x (/ card-width 2))
+   (- y (-> (* 0.4 card-height) int))])
+
 ;;
 ;; State Actions
 ;;
 
-(defn drag-start-action
+(defn start-drag-action
   [pos]
   (fn [{:keys [piles] :as state}]
-    (let [piles-w-selected-cards (->> (vals piles)
-                                   (mapcat vals)
-                                   (filter #(some :selected? (:cards %))))
+    (let [piles-in-selection (filter #(some :selected? (:cards %))
+                                     (mapcat vals (vals piles)))
           [x y] pos
-          drag-start? (loop [ps piles-w-selected-cards]
+          drag-start? (loop [ps piles-in-selection]
                         (if-let [{l :x, pt :y, cards :cards, :as p} (first ps)]
                           (let [r (+ l card-width)
                                 t (-> (filter :selected? cards) first :y)
@@ -171,11 +189,18 @@
                           false))]
       (if-not drag-start?
         (dissoc state :drag)
-        (let [card-ids (->> (mapcat :cards piles-w-selected-cards)
-                         (filter :selected?)
-                         (map :id)
-                         set)]
-          (assoc state :drag {:card-ids card-ids}))))))
+        (let [[drag-pile-x drag-pile-y] (drag-pile-pos x y)
+              selected-cards (filter :selected?
+                                     (mapcat :cards piles-in-selection))
+              drag-pile (make-pile selected-cards drag-pile-x drag-pile-y)
+              state' (reduce (fn [state {px :x, py :y, cards :cards}]
+                               (if (empty? cards)
+                                 (remove-pile state px py)
+                                 (add-pile state (make-pile cards px py))))
+                             state
+                             (map #(update-in % [:cards] (partial remove :selected?))
+                                  piles-in-selection))]
+          (assoc state' :drag drag-pile))))))
 
 (defn apply-selection
   [state selection]
@@ -200,10 +225,12 @@
 
 (defn update-selection-or-drag-destination-action
   [pos]
-  (fn [{:keys [piles selection drag] :as state}]
+  (fn [{:keys [selection drag] :as state}]
     (cond
       selection (update-in state [:selection] assoc :stop pos)
-      drag (update-in state [:drag] assoc :to pos)
+      drag (let [[x y] pos
+                 [px py] (drag-pile-pos x y)]
+             (assoc state :drag (make-pile (:cards drag) px py)))
       :otherwise state)))
 
 (defn stop-selection-or-drag-action
@@ -222,7 +249,7 @@
 
 (def initial-state
   (let [blank {:piles (sorted-map)}]
-    (add-pile blank (repeatedly 7 forest))))
+    (add-pile blank (make-pile (repeatedly 7 forest)))))
 
 (def state-signal
   (let [drag-coords (sig/keep-when mouse/down? [0 0] mouse/position)
@@ -238,7 +265,7 @@
                   (sig/lift start-selection-if-not-dragging-action drag-start-coords)
                   (sig/lift stop-selection-or-drag-action stop-drag)
                   (sig/lift update-selection-or-drag-destination-action drag-coords)
-                  (sig/lift drag-start-action click-down-coords)
+                  (sig/lift start-drag-action click-down-coords)
                   (sig/constant identity))]
     (sig/reducep (fn [state action] (action state))
                  initial-state
@@ -277,13 +304,22 @@
     (apply dom/div #js {:className "pile"}
            (map render-card cards))))
 
+(defn render-drag
+  [pile]
+  (apply dom/div #js {:id "drag" :className "pile"}
+         (map render-card (:cards pile))))
+
 (defn render-hud
   [state]
-  (let [cardless (dissoc state :piles)]
+  (let [no-piles (dissoc state :piles)
+        dragged-ids (if (contains? no-piles :drag)
+                      (update-in no-piles [:drag :cards] (partial map :id))
+                      no-piles)]
     (dom/div #js {:id "hud", :style #js {:position "relative"}}
              (dom/pre nil
                       (dom/b nil
-                             (.stringify js/JSON (clj->js cardless) nil 2))))))
+                             (.stringify js/JSON
+                               (clj->js dragged-ids) nil 2))))))
 
 (defn render-state
   [state]
@@ -291,6 +327,7 @@
         piles (mapcat vals (-> state :piles vals))]
     (dom/div #js {:id "dom-root"}
              (apply dom/div {:id "piles"} (map #(render-pile % selection) piles))
+             (render-drag (:drag state))
              (render-selection selection))))
 
 ;;
