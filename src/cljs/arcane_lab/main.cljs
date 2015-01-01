@@ -23,6 +23,7 @@
 (def gutter (quot card-width 8))
 (def half-gutter (quot gutter 2))
 (def pile-stride (quot card-height 9.25))
+(def pile-spacing (+ card-width gutter))
 
 ;;
 ;; Card-Generating Functions
@@ -160,12 +161,56 @@
                      cs'))]
       (assoc pile :cards cards'))))
 
+;;
+;; Dragging
+;;
+
+(def drag-x-offset (/ card-width 2))
+(def drag-y-offset (-> (* 0.4 card-height) int))
+
 (defn drag-pile-pos
   "Given the mouse's x & y coordinates, return the position of the drag pile
   such that the mouse is in the center."
   [x y]
-  [(- x (/ card-width 2))
-   (- y (-> (* 0.4 card-height) int))])
+  [(- x drag-x-offset)
+   (- y drag-y-offset)])
+
+(defn mouse-pos
+  [drag-x drag-y]
+  [(+ drag-x drag-x-offset)
+   (+ drag-y drag-y-offset)])
+
+(defn drag-target
+  [drag piles]
+  ;; want to find the nearest drop position for the drag, which means:
+  ;;   nearest pile or place where new pile could be inserted
+  (if drag
+    (let [[x y] (mouse-pos (:x drag) (:y drag))
+          col-index (quot (- x half-gutter) pile-spacing)
+          left-col (-> (* col-index pile-spacing) (+ half-gutter))
+          right-col (-> (* (inc col-index) pile-spacing) (+ half-gutter))
+          columns (vals piles)
+          row-count (apply max (map count columns))
+          row-heights (for [ri (range row-count)
+                            :let [row (map #(-> (nth (seq %) ri) val) columns)]]
+                        (apply max (map pile-height row)))
+          first-row-y half-gutter
+          row-ys (reductions (fn [ry h] (+ ry h gutter)) first-row-y row-heights)
+          [before-and-on after] (split-with #(<= % y) row-ys)
+          row-y (or (last before-and-on) first-row-y)
+          row-height (cond
+                       (< y first-row-y) (first row-heights)
+                       (not (empty? after)) (nth row-heights
+                                                 (dec (count before-and-on)))
+                       :otherwise 999999) ; on the last row, so will place on that one
+          candidates (for [cx [left-col right-col]
+                           cy [row-y (+ row-y row-height)]]
+                       [cx cy])
+          dist-sqd (fn [cx cy]
+                     (let [dx (- x cx)
+                           dy (- y cy)]
+                       (+ (* dx dx) (* dy dy))))]
+      (first (sort-by dist-sqd candidates)))))
 
 ;;
 ;; State Actions
@@ -305,9 +350,19 @@
            (map render-card cards))))
 
 (defn render-drag
-  [pile]
-  (apply dom/div #js {:id "drag" :className "pile"}
-         (map render-card (:cards pile))))
+  [drag piles]
+  (if drag
+    (let [[tx ty] (drag-target drag piles)]
+      (dom/div nil
+               (dom/div #js {:id "drag-target"
+                             :className "ghost"
+                             :style #js {:position "absolute"
+                                         :left tx
+                                         :top ty
+                                         :width card-width
+                                         :height card-height}})
+               (apply dom/div #js {:id "drag" :className "pile"}
+                      (map render-card (:cards drag)))))))
 
 (defn render-hud
   [state]
@@ -327,7 +382,7 @@
         piles (mapcat vals (-> state :piles vals))]
     (dom/div #js {:id "dom-root"}
              (apply dom/div {:id "piles"} (map #(render-pile % selection) piles))
-             (render-drag (:drag state))
+             (render-drag (:drag state) (:piles state))
              (render-selection selection))))
 
 ;;
