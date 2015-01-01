@@ -108,6 +108,16 @@
              height (pile-height pile)]
          (within? (- l card-width) r (- t height) b x y))))
 
+(defn row-spacings
+  "Given the row y locations in an ascending sequence, return a sequence of the
+  spacing between each row. Note that the returned sequence will have one less
+  element than the input sequence."
+  [row-ys]
+  (if (= count row-ys 1)
+    ()
+    (->> (reductions #(- %2 %1) row-ys)
+      (drop 1))))
+
 (defn pile-after-selection
   "Given a selection and a pile returns a new pile with the cards that the
   selection hits marked by setting their :selected? field to true."
@@ -177,22 +187,19 @@
           all-piles (mapcat vals rows)
           row-ys (keys piles)
           row-count (count piles)
-          row-heights (if (= row-count 1)
-                        [(+ (apply max (map pile-height all-piles)) gutter)]
-                        (->> (reductions #(- %2 %1) row-ys)
-                          (drop 1)))
+          last-row-height (let [last-row-piles (-> (get piles (last row-ys)) vals)]
+                            (+ gutter (apply max (map pile-height last-row-piles))))
+          row-spacings (conj (vec (row-spacings row-ys))
+                             last-row-height)
           [before-and-on after] (split-with #(<= % y) row-ys)
           first-row-y half-gutter
           row-y (or (last before-and-on) first-row-y)
           row-height (cond
-                       (= row-heights 1) (first row-heights)
-                       (< y first-row-y) (first row-heights)
-                       (not (empty? after)) (nth row-heights
+                       (= row-count 1) (first row-spacings)
+                       (< y first-row-y) (first row-spacings)
+                       (not (empty? after)) (nth row-spacings
                                                  (dec (count before-and-on)))
-                       :otherwise
-                       (let [last-row-piles (-> (get piles (last row-ys)) vals)]
-                         (+ (apply max (map pile-height last-row-piles))
-                            gutter)))
+                       :otherwise last-row-height)
           candidates (for [cx [left-col right-col]
                            cy [row-y (+ row-y row-height)]]
                        [cx cy])
