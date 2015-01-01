@@ -48,8 +48,10 @@
 (defn pile-height
   [{:keys [cards] :as pile}]
   ;; by induction, each card besides the first is covered by the previous
-  (let [covered (dec (count cards))]
-    (+ card-height (* pile-stride covered))))
+  (if-not pile
+    0
+    (let [covered (dec (count cards))]
+      (+ card-height (* pile-stride covered)))))
 
 (defn make-pile
   ([cards] (make-pile cards
@@ -192,7 +194,8 @@
           columns (vals piles)
           row-count (apply max (map count columns))
           row-heights (for [ri (range row-count)
-                            :let [row (map #(-> (nth (seq %) ri) val) columns)]]
+                            :let [null-entry (first {nil nil})
+                                  row (map #(-> (nth (seq %) ri null-entry) val) columns)]]
                         (apply max (map pile-height row)))
           first-row-y half-gutter
           row-ys (reductions (fn [ry h] (+ ry h gutter)) first-row-y row-heights)
@@ -202,7 +205,7 @@
                        (< y first-row-y) (first row-heights)
                        (not (empty? after)) (nth row-heights
                                                  (dec (count before-and-on)))
-                       :otherwise 999999) ; on the last row, so will place on that one
+                       :otherwise 999999) ; on the last row, make next unreachable
           candidates (for [cx [left-col right-col]
                            cy [row-y (+ row-y row-height)]]
                        [cx cy])
