@@ -45,6 +45,27 @@
   ([card x y] (assoc card :x x :y y)))
 
 ;;
+;; Selection / Geometric Filtering
+;;
+
+(defn within?
+  "Returns true if the point at (x,y) is within the box defined by left, right,
+  top, and bottom."
+  [left right top bottom x y]
+  (and (not (> x right))  ; the point is not to the right of the box
+       (not (< x left))   ; the point is not to the left of the box
+       (not (> y bottom)) ; the point is not below the box
+       (not (< y top))))  ; the point is not above the box
+
+(defn selection-edges
+  "Given a selection, return the left & right x values and the top & bottom
+  y values, in a vector in that order ([l r t b])."
+  [selection]
+  (let [{[x1 y1] :start, [x2 y2] :stop} selection]
+    (vec (concat (sort [x1 x2])
+                 (sort [y1 y2])))))
+
+;;
 ;; Piles
 ;;
 
@@ -78,27 +99,6 @@
     (if (and (contains? row x) (= (count row) 1))
       (update-in state [:piles] dissoc y)
       (update-in state [:piles y] dissoc x))))
-
-;;
-;; Selection / Geometric Filtering
-;;
-
-(defn within?
-  "Returns true if the point at (x,y) is within the box defined by left, right,
-  top, and bottom."
-  [left right top bottom x y]
-  (and (not (> x right))  ; the point is not to the right of the box
-       (not (< x left))   ; the point is not to the left of the box
-       (not (> y bottom)) ; the point is not below the box
-       (not (< y top))))  ; the point is not above the box
-
-(defn selection-edges
-  "Given a selection, return the left & right x values and the top & bottom
-  y values, in a vector in that order ([l r t b])."
-  [selection]
-  (let [{[x1 y1] :start, [x2 y2] :stop} selection]
-    (vec (concat (sort [x1 x2])
-                 (sort [y1 y2])))))
 
 (defn pile-selected?
   [selection pile]
