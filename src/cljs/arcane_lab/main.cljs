@@ -285,7 +285,14 @@
       selection (-> state
                   (apply-selection selection)
                   (dissoc :selection))
-      drag (dissoc state :drag)
+      drag (let [[tx ty] (drag-target drag piles)
+                 new-pile (if-let [{old-cards :cards} (get-in piles [tx ty])]
+                            (make-pile (concat old-cards (:cards drag))
+                                       tx, ty)
+                            (make-pile (:cards drag) tx ty))]
+             (-> state
+               (add-pile new-pile)
+               (dissoc :drag)))
       :otherwise state)))
 
 ;;
