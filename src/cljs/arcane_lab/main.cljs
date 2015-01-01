@@ -69,15 +69,15 @@
   [state pile]
   (let [{:keys [x y]} pile]
     (-> state
-       (update-in [:piles x] (fnil identity (sorted-map)))
-       (assoc-in [:piles x y] pile))))
+       (update-in [:piles y] (fnil identity (sorted-map)))
+       (assoc-in [:piles y x] pile))))
 
 (defn remove-pile
   [state x y]
-  (let [column (get-in state [:piles x])]
-    (if (and (contains? column y) (= (count column) 1))
-      (update-in state [:piles] dissoc x)
-      (update-in state [:piles x] dissoc y))))
+  (let [row (get-in state [:piles y])]
+    (if (and (contains? row x) (= (count row) 1))
+      (update-in state [:piles] dissoc y)
+      (update-in state [:piles y] dissoc x))))
 
 ;;
 ;; Selection / Geometric Filtering
@@ -107,27 +107,6 @@
              {x :x, y :y} pile
              height (pile-height pile)]
          (within? (- l card-width) r (- t height) b x y))))
-
-(defn selected-piles
-  [selection pile-grid]
-  (if-not selection
-    []
-    (let [[l r t b] (selection-edges selection)
-          min-pile-x (- l card-width)
-          x-pass-piles (loop [columns (seq pile-grid), piles []]
-                         (if-let [[x column] (first columns)]
-                           (cond
-                             (> x r) piles
-                             (< x min-pile-x) (recur (next columns) piles)
-                             :otherwise ; x is in range [min-pile-x, r]
-                             (recur (next columns) (concat piles (vals column))))
-                           ;; else (no more columns)
-                           piles))
-          selected? (fn [{y :y, :as pile}]
-                      (let [height (pile-height pile)]
-                        (and (not (> y b))
-                             (not (< (+ y height) t)))))]
-      (filter selected? x-pass-piles))))
 
 (defn pile-after-selection
   "Given a selection and a pile returns a new pile with the cards that the
@@ -194,34 +173,34 @@
           col-index (quot (- x half-gutter) pile-spacing)
           left-col (-> (* col-index pile-spacing) (+ half-gutter))
           right-col (-> (* (inc col-index) pile-spacing) (+ half-gutter))
-          columns (vals piles)
-          all-piles (mapcat vals columns)
-          row-ys (-> (map :y all-piles) distinct sort)
-          row-count (count row-ys)
+          rows (vals piles)
+          all-piles (mapcat vals rows)
+          row-ys (keys piles)
+          row-count (count piles)
           row-heights (if (= row-count 1)
-                        [(apply max (map pile-height all-piles))]
+                        [(+ (apply max (map pile-height all-piles)) gutter)]
                         (->> (reductions #(- %2 %1) row-ys)
                           (drop 1)))
           [before-and-on after] (split-with #(<= % y) row-ys)
           first-row-y half-gutter
-          last-row-height (let [last-row-piles (filter #(= (:y %) (last row-ys))
-                                                       all-piles)]
-                            (apply max (map pile-height last-row-piles)))
+          row-y (or (last before-and-on) first-row-y)
           row-height (cond
+                       (= row-heights 1) (first row-heights)
                        (< y first-row-y) (first row-heights)
                        (not (empty? after)) (nth row-heights
                                                  (dec (count before-and-on)))
-                       :otherwise (+ last-row-height gutter))
-          row-y (or (last before-and-on) first-row-y)
+                       :otherwise
+                       (let [last-row-piles (-> (get piles (last row-ys)) vals)]
+                         (+ (apply max (map pile-height last-row-piles))
+                            gutter)))
           candidates (for [cx [left-col right-col]
                            cy [row-y (+ row-y row-height)]]
                        [cx cy])
           distance-squared (fn [[cx cy]]
                              (let [dx (- x (+ cx half-card-width))
                                    dy (- y (+ cy half-card-height))]
-                               (+ (* dx dx) (* dy dy))))
-          sorted-candidates (sort-by distance-squared candidates)]
-      (first sorted-candidates))))
+                               (+ (* dx dx) (* dy dy))))]
+      (first (sort-by distance-squared candidates)))))
 
 ;;
 ;; State Actions
@@ -264,7 +243,7 @@
     (if-not selection
       state
       (reduce (fn [state {x :x, y :y, :as pile'}]
-              (assoc-in state [:piles x y] pile'))
+              (assoc-in state [:piles y x] pile'))
             state
             (map (partial pile-after-selection selection)
                  (mapcat vals (vals piles)))))))
@@ -297,7 +276,7 @@
                   (apply-selection selection)
                   (dissoc :selection))
       drag (let [[tx ty] (drag-target drag piles)
-                 new-pile (if-let [{old-cards :cards} (get-in piles [tx ty])]
+                 new-pile (if-let [{old-cards :cards} (get-in piles [ty tx])]
                             (make-pile (concat old-cards (:cards drag))
                                        tx, ty)
                             (make-pile (:cards drag) tx ty))]
