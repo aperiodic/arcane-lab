@@ -20,12 +20,12 @@
 (def card-width 222)
 (def card-height 319)
 
-(def half-card-width (quot card-width 2))
-(def half-card-height (quot card-height 2))
+(def half-card-width (int (/ card-width 2)))
+(def half-card-height (int (/ card-height 2)))
 
-(def gutter (quot card-width 8))
-(def half-gutter (quot gutter 2))
-(def pile-stride (quot card-height 9.25))
+(def gutter (int (/ card-width 8)))
+(def half-gutter (int (/ gutter 2)))
+(def pile-stride (int (/ card-height 9.25)))
 (def pile-spacing (+ card-width gutter))
 
 ;;
@@ -50,9 +50,9 @@
 
 (defn pile-height
   [{:keys [cards] :as pile}]
-  ;; by induction, each card besides the first is covered by the previous
   (if-not pile
     0
+    ;; by induction, each card besides the first is covered by the previous
     (let [covered (dec (count cards))]
       (+ card-height (* pile-stride covered)))))
 
