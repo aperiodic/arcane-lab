@@ -168,7 +168,7 @@
 ;;
 
 (def drag-x-offset (/ card-width 2))
-(def drag-y-offset (-> (* 0.4 card-height) int))
+(def drag-y-offset (-> (* 0.33 card-height) int))
 
 (defn drag-pile-pos
   "Given the mouse's x & y coordinates, return the position of the drag pile
@@ -192,28 +192,33 @@
           left-col (-> (* col-index pile-spacing) (+ half-gutter))
           right-col (-> (* (inc col-index) pile-spacing) (+ half-gutter))
           columns (vals piles)
-          row-count (apply max (map count columns))
-          row-heights (for [ri (range row-count)
-                            :let [null-entry (first {nil nil})
-                                  row (map #(-> (nth (seq %) ri null-entry) val) columns)]]
-                        (apply max (map pile-height row)))
-          first-row-y half-gutter
-          row-ys (reductions (fn [ry h] (+ ry h gutter)) first-row-y row-heights)
+          all-piles (mapcat vals columns)
+          row-ys (-> (map :y all-piles) distinct sort)
+          row-count (count row-ys)
+          row-heights (if (= row-count 1)
+                        [(apply max (map pile-height all-piles))]
+                        (->> (reductions #(- %2 %1) row-ys)
+                          (drop 1)))
           [before-and-on after] (split-with #(<= % y) row-ys)
-          row-y (or (last before-and-on) first-row-y)
+          first-row-y half-gutter
+          last-row-height (let [last-row-piles (filter #(= (:y %) (last row-ys))
+                                                       all-piles)]
+                            (apply max (map pile-height last-row-piles)))
           row-height (cond
                        (< y first-row-y) (first row-heights)
                        (not (empty? after)) (nth row-heights
                                                  (dec (count before-and-on)))
-                       :otherwise 999999) ; on the last row, make next unreachable
+                       :otherwise (+ last-row-height gutter))
+          row-y (or (last before-and-on) first-row-y)
           candidates (for [cx [left-col right-col]
                            cy [row-y (+ row-y row-height)]]
                        [cx cy])
-          dist-sqd (fn [cx cy]
-                     (let [dx (- x cx)
-                           dy (- y cy)]
-                       (+ (* dx dx) (* dy dy))))]
-      (first (sort-by dist-sqd candidates)))))
+          distance-squared (fn [[cx cy]]
+                             (let [dx (- x cx)
+                                   dy (- y cy)]
+                               (+ (* dx dx) (* dy dy))))
+          sorted-candidates (sort-by distance-squared candidates)]
+      (first sorted-candidates))))
 
 ;;
 ;; State Actions
