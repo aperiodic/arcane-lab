@@ -20,6 +20,9 @@
 (def card-width 222)
 (def card-height 319)
 
+(def half-card-width (quot card-width 2))
+(def half-card-height (quot card-height 2))
+
 (def gutter (quot card-width 8))
 (def half-gutter (quot gutter 2))
 (def pile-stride (quot card-height 9.25))
@@ -168,7 +171,7 @@
 ;;
 
 (def drag-x-offset (/ card-width 2))
-(def drag-y-offset (-> (* 0.33 card-height) int))
+(def drag-y-offset (-> (* 0.4 card-height) int))
 
 (defn drag-pile-pos
   "Given the mouse's x & y coordinates, return the position of the drag pile
@@ -214,8 +217,8 @@
                            cy [row-y (+ row-y row-height)]]
                        [cx cy])
           distance-squared (fn [[cx cy]]
-                             (let [dx (- x cx)
-                                   dy (- y cy)]
+                             (let [dx (- x (+ cx half-card-width))
+                                   dy (- y (+ cy half-card-height))]
                                (+ (* dx dx) (* dy dy))))
           sorted-candidates (sort-by distance-squared candidates)]
       (first sorted-candidates))))
