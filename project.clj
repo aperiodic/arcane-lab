@@ -8,9 +8,12 @@
                  [cheshire "5.4.0"]
                  [clj-http "1.0.1"]
                  [org.clojars.franks42/cljs-uuid-utils "0.1.3"]
+                 [hiccup "1.0.5"]
                  [jamesmacaulay/zelkova "0.2.0"]
-                 [om "0.7.3"]]
-  :profiles {:dev {:plugins [[lein-cljsbuild "1.0.3"]]}}
+                 [om "0.7.3"]
+                 [ring "1.3.2"]]
+  :profiles {:dev {:plugins [[lein-cljsbuild "1.0.3"]
+                             [lein-ring "0.8.11"]]}}
   :source-paths ["src/cljs" "src/clj"]
   :target-path "target/jvm/%s"
   :cljsbuild {:builds [{:id "arcane-lab"
