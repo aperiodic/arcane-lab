@@ -5,9 +5,9 @@
             [clojure.walk :refer [postwalk]]
             [cheshire.core :as json]))
 
-(defn rarity-key
-  [rarity]
-  (-> rarity
+(defn words->key
+  [words]
+  (-> words
     str/lower-case
     (str/replace " " "-")
     keyword))
@@ -20,17 +20,28 @@
     slurp
     (json/decode true)))
 
+(defn process-card
+  "Pre-process a card to:
+    1 - keywordize colors
+    2 - keywordize rarity with words->key"
+  [card]
+  (-> card
+    (update-in [:colors] (partial mapv words->key))
+    (update-in [:rarity] words->key)))
+
 (defn process-set
   "Pre-process a set to:
-    1) group cards by rarity
-    2) change string values in booster specs to keywords"
+    1 - process each card with process-card (defined above)
+    2 - group cards by rarity
+    3 - change string values in booster specs to keywords"
   [set]
   (let [keywordize-string (fn [x]
                             (if (string? x)
-                              (rarity-key x)
+                              (words->key x)
                               x))]
     (-> set
-      (update-in [:cards] #(group-by (comp rarity-key :rarity) %))
+      (update-in [:cards] (partial map process-card))
+      (update-in [:cards] #(group-by :rarity %))
       (update-in [:booster] (partial postwalk keywordize-string)))))
 
 (def booster-sets
