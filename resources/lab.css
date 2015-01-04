@@ -3,6 +3,10 @@
   -moz-box-sizing: border-box;
 }
 
+body {
+  background: rgb(255, 253, 249);
+}
+
 body, div, img {
           user-select: none;
      -moz-user-select: -moz-none;
@@ -16,7 +20,7 @@ img {
 }
 
 #selection, .selected {
-  outline: 2px solid #169406;
+  outline: 3px solid #39C527;
 }
 
 .ghost {
