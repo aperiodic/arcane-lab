@@ -30,7 +30,7 @@
 (def pile-spacing (+ card-width gutter))
 
 ;;
-;; Card-Generating Functions
+;; Card Creation & Sorting
 ;;
 
 (defn forest []
@@ -57,6 +57,30 @@
 (defn card-at
   ([card [x y]] (card-at card x y))
   ([card x y] (assoc card :x x :y y)))
+
+(def color-order [:white :blue :black :red :green :gold :colorless])
+
+(def color->index
+  {:white 0
+   :blue 1
+   :black 2
+   :red 3
+   :green 4})
+
+(defn wubrggc-sort
+  "Sort cards by WUBRG, with gold cards followed by colorless ones at the end."
+  [card]
+  (let [{:keys [colors]} card
+        color-count (count colors)]
+    (cond
+      (zero? color-count) 6
+      (> (count colors) 1) 5
+      :otherwise (color->index (first colors) 0))))
+
+(defn basic-land?
+  [card]
+  (let [basic-land-names #{"Plains" "Island" "Swamp" "Mountain" "Forest"}]
+    (contains? basic-land-names (:name card))))
 
 ;;
 ;; Selection / Geometric Filtering
@@ -90,6 +114,10 @@
     ;; by induction, each card besides the first is covered by the previous
     (let [covered (dec (count cards))]
       (+ card-height (* pile-stride covered)))))
+
+(defn nth-column-x
+  [n]
+  (+ (* n pile-spacing) half-gutter))
 
 (defn make-pile
   ([cards] (make-pile cards
@@ -355,11 +383,6 @@
 ;; Signal Graph
 ;;
 
-(defn initial-state
-  [cards]
-  (let [blank {:piles (sorted-map)}]
-    (add-pile blank (make-pile cards))))
-
 (defn state-signal
   [initial-state]
   (let [drag-coords (sig/keep-when mouse/down? [0 0] mouse/position)
@@ -470,11 +493,46 @@
 ;; Initial State Setup
 ;;
 
+(def blank-state {:piles (sorted-map)})
+
 (defn start-app
-  [cards]
-  (let [init-state (initial-state (map api-card->client-card cards))
-        state-atom (sig/pipe-to-atom (state-signal init-state))]
-    (start-om state-atom)))
+  [api-cards]
+  (let [cards (map api-card->client-card
+                   (remove basic-land? api-cards))
+        rare? #(contains? #{:rare :mythic-rare} (:rarity %))
+        [rares others] ((juxt (partial filter rare?)
+                              (partial remove rare?))
+                        cards)
+        rare->pile (fn [i rare]
+                     (make-pile [rare] (nth-column-x i) half-gutter))
+        rare-piles (map-indexed rare->pile (sort-by wubrggc-sort rares))
+        color->non-rares (group-by (fn [{:keys [colors]}]
+                                     (cond
+                                       (empty? colors) :colorless
+                                       (> (count colors) 1) :gold
+                                       :otherwise (first colors)))
+                                   others)
+        colors-and-xs (reduce (fn [cs-&-ps color]
+                                (let [last-x (-> cs-&-ps
+                                               (nth (dec (count cs-&-ps)) nil)
+                                               (nth 1 nil))
+                                      x (if last-x
+                                          (+ last-x pile-spacing)
+                                          half-gutter)]
+                                  (if (empty? (color->non-rares color))
+                                    cs-&-ps
+                                    (conj cs-&-ps [color x]))))
+                              []
+                              color-order)
+        pile-for-color-at-x (fn [[color x]]
+                              (let [col-cards (color->non-rares color)
+                                    y (+ half-gutter card-height gutter)]
+                                (make-pile (sort-by :name col-cards) x y)))
+        color-piles (map pile-for-color-at-x colors-and-xs)
+        init-state (reduce (fn [state pile] (add-pile state pile))
+                           blank-state
+                           (concat rare-piles color-piles))]
+    (start-om (sig/pipe-to-atom (state-signal init-state)))))
 
 (defn api-error
   [{:keys [status], {:keys [msg kind]} :response}]
