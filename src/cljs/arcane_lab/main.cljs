@@ -344,11 +344,13 @@
         drag-start-coords (sig/sample-on start-drag mouse/position)
         click-down (sig/keep-if identity true (sig/drop-repeats mouse/down?))
         click-down-coords (sig/sample-on click-down mouse/position)
+        click-up (sig/keep-if not false (sig/drop-repeats mouse/down?))
         actions (sig/merge
-                  (sig/lift start-selection-if-not-dragging-action drag-start-coords)
-                  (sig/lift stop-selection-or-drag-action stop-drag)
-                  (sig/lift update-selection-or-drag-destination-action drag-coords)
                   (sig/lift start-drag-action click-down-coords)
+                  (sig/lift start-selection-if-not-dragging-action drag-start-coords)
+                  (sig/lift update-selection-or-drag-destination-action drag-coords)
+                  (sig/lift stop-selection-or-drag-action stop-drag)
+                  (sig/lift stop-selection-or-drag-action click-up)
                   (sig/constant identity))]
     (sig/reducep (fn [state action] (action state))
                  initial-state
