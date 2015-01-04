@@ -26,7 +26,7 @@
 
 (def gutter (int (/ card-width 8)))
 (def half-gutter (int (/ gutter 2)))
-(def pile-stride (int (/ card-height 9.25)))
+(def pile-stride (int (/ card-height 9.5)))
 (def pile-spacing (+ card-width gutter))
 
 ;;
