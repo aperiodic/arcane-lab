@@ -167,21 +167,32 @@
       (assoc y' row'))))
 
 (defn rejigger-rows
-  "After placing, the rows may be too far apart if cards were moved from the
-  strictly tallest pile in a row, or they may be too close together if new cards
-  were moved to the tallest pile in a row. Given the piles map, Return a new
-  piles map with the rows exactly as far apart as necessary (i.e., the max pile
-  height in each row plus the gutter)."
+  "After placing, the rows may be need to be moved up if the first row is now
+  empty, they may be too far apart if cards were moved from the strictly tallest
+  pile in a row, or they may be too close together if new cards were moved to
+  the tallest pile in a row. Given the piles map, return a new piles map with
+  all empty rows removed, the rest of the rows moved up accordingly, and the
+  rows exactly as far apart as necessary (i.e., the max pile height in each row
+  plus the gutter)."
   [piles]
-  (let [ys (keys piles)
+  (let [old-ys (keys piles)
+        piles' (if (= (first old-ys) half-gutter)
+                 piles
+                 (let [first-spacing (- (first old-ys) half-gutter)]
+                   (reduce (fn [piles [y y']] (move-row piles y y'))
+                           piles
+                           (map vector
+                                old-ys
+                                (map #(- % first-spacing) old-ys)))))
+        ys (keys piles')
         spacings (row-spacings ys)
-        spacings' (for [row (butlast (vals piles))]
+        spacings' (for [row (butlast (vals piles'))]
                     (+ (apply max (map pile-height (vals row))) gutter))
         ys' (reductions + half-gutter spacings')]
     (if (= spacings spacings')
-      piles
-      (reduce (fn [piles [y y']] (move-row piles y y'))
-              piles
+      piles'
+      (reduce (fn [piles' [y y']] (move-row piles' y y'))
+              piles'
               (map vector ys ys')))))
 
 ;;
