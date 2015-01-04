@@ -71,12 +71,12 @@
          (cond
            (some nil? boosters)
            (let [msg (str "Could not recognize these set codes: "
-                          (str/join ", " (unrecognized-sets pack-spec)))]
+                          (str/join ", " (unrecognized-sets pack-spec)) ".")]
              (edn-resp {:msg msg, :kind "unrecognized-set"} 400))
 
            (not= booster-count 6)
            (let [msg (str "A sealed pool requires exactly 6 booster packs, but"
-                          " you asked for " booster-count)]
+                          " you asked for " booster-count ".")]
              (edn-resp {:msg msg, :kind "bad-booster-count"} 400))
 
            :otherwise (edn-resp (apply concat boosters)))))
