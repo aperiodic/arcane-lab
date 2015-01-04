@@ -48,6 +48,10 @@
         wout-qtfrs (str/replace wout-recognized #"\d" "")]
     (map (partial apply str) (partition 3 wout-qtfrs))))
 
+(defn full-card->client-card
+  [card]
+  (select-keys card [:name :multiverseid :rarity :colors :manaCost :cmc]))
+
 (defn- edn-resp
   ([thing] (edn-resp thing 200 {}))
   ([thing code] (edn-resp thing code {}))
@@ -67,6 +71,8 @@
 
   (GET "/pool/:pack-spec" [pack-spec]
        (let [boosters (map cards/booster (pack-spec->codes pack-spec))
+             cards (->> (apply concat boosters)
+                     (map full-card->client-card))
              booster-count (count boosters)]
          (cond
            (some nil? boosters)
@@ -79,7 +85,7 @@
                           " you asked for " booster-count ".")]
              (edn-resp {:msg msg, :kind "bad-booster-count"} 400))
 
-           :otherwise (edn-resp (apply concat boosters)))))
+           :otherwise (edn-resp cards))))
 
   (route/not-found (pr-str {:msg "404 Not Found", :kind "not-found"})))
 
