@@ -5,13 +5,15 @@
             :url "https://gnu.org/licenses/gpl-3.0.txt"}
   :dependencies [[org.clojure/clojure "1.7.0-alpha4"]
                  [org.clojure/clojurescript "0.0-2411"]
+                 [bigml/sampling "3.0"]
                  [cheshire "5.4.0"]
                  [clj-http "1.0.1"]
+                 [compojure "1.3.1"]
                  [org.clojars.franks42/cljs-uuid-utils "0.1.3"]
-                 [hiccup "1.0.5"]
                  [jamesmacaulay/zelkova "0.2.0"]
                  [om "0.7.3"]
-                 [ring "1.3.2"]]
+                 [ring "1.3.2"]
+                 [ring/ring-defaults "0.1.3"]]
   :profiles {:dev {:plugins [[lein-cljsbuild "1.0.3"]
                              [lein-ring "0.8.11"]]}}
   :source-paths ["src/cljs" "src/clj"]
