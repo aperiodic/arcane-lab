@@ -1,13 +1,14 @@
 (ns arcane-lab.main
-  (:require [cljs.core.async :as async :refer [>! <!]]
+  (:require [ajax.core :as async-http]
             [cljs-uuid-utils :refer [make-random-uuid]]
+            [clojure.string :as str]
             [jamesmacaulay.zelkova.signal :as sig]
             [jamesmacaulay.zelkova.mouse :as mouse]
             [jamesmacaulay.zelkova.time :as time]
             [jamesmacaulay.async-tools.core :as tools]
             [om.core :as om :include-macros true]
             [om.dom :as dom :include-macros true])
-  (:require-macros [cljs.core.async.macros :refer [go go-loop]]))
+  (:import goog.Uri.QueryData))
 
 (def rand-uuid make-random-uuid)
 
@@ -39,6 +40,19 @@
    :x half-gutter
    :y half-gutter
    :selected? false})
+
+(defn card-img-src
+  [multiverseid]
+  (str "http://mtgimage.com/multiverseid/" multiverseid ".jpg"))
+
+(defn api-card->client-card
+  [api-card]
+  (let [{:keys [multiverseid]} api-card]
+    (assoc api-card
+           :img-src (card-img-src multiverseid)
+           :id (rand-uuid)
+           :x half-gutter, :y half-gutter
+           :selected? false)))
 
 (defn card-at
   ([card [x y]] (card-at card x y))
@@ -341,11 +355,13 @@
 ;; Signal Graph
 ;;
 
-(def initial-state
+(defn initial-state
+  [cards]
   (let [blank {:piles (sorted-map)}]
-    (add-pile blank (make-pile (repeatedly 7 forest)))))
+    (add-pile blank (make-pile cards))))
 
-(def state-signal
+(defn state-signal
+  [initial-state]
   (let [drag-coords (sig/keep-when mouse/down? [0 0] mouse/position)
         dragging? (let [true-on-dragmove (sig/sample-on drag-coords (sig/constant true))]
                     (->> (sig/merge (sig/keep-if not false mouse/down?) true-on-dragmove)
@@ -440,12 +456,45 @@
 ;; Om App
 ;;
 
-(def !app-state (sig/pipe-to-atom state-signal))
+(defn start-om
+  [state]
+  (om/root
+    (fn [app owner]
+      (reify om/IRender
+        (render [_]
+          (render-state app))))
+    state
+    {:target (. js/document (getElementById "app"))}))
 
-(om/root
-  (fn [app owner]
-    (reify om/IRender
-      (render [_]
-        (render-state app))))
-  !app-state
-  {:target (. js/document (getElementById "app"))})
+;;
+;; Initial State Setup
+;;
+
+(defn start-app
+  [cards]
+  (let [init-state (initial-state (map api-card->client-card cards))
+        state-atom (sig/pipe-to-atom (state-signal init-state))]
+    (start-om state-atom)))
+
+(defn api-error
+  [{:keys [status], {:keys [msg kind]} :response}]
+  (if (= status 400)
+    (js/alert (str msg " Please edit the packs parameter in the query string"
+                   " accordingly and then hit enter."))
+    (js/alert "Could not communicate with the backend server."
+              " Please try again later")))
+
+(def default-pack-spec "6KTK")
+
+(defn fetch-pool-and-start-app!
+  []
+  (let [pack-spec (-> (-> js/document .-location .-search)
+                    (str/replace #"^\?" "")
+                    (goog.Uri.QueryData.)
+                    (.get "packs"))]
+    (async-http/GET (str "/pool/" (or pack-spec default-pack-spec))
+                    {:format :edn
+                     :handler start-app
+                     :error-handler api-error})))
+
+(fetch-pool-and-start-app!)
