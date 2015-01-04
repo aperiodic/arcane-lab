@@ -203,6 +203,14 @@
   [(+ drag-x drag-x-offset)
    (+ drag-y drag-y-offset)])
 
+(defn distance-squared-to
+  ([p] (let [{x :x y :y} p] (distance-squared-to x y)))
+  ([x y]
+   (fn [[cx cy]]
+     (let [dx (- x (+ cx half-card-width))
+           dy (- y (+ cy half-card-height))]
+       (+ (* dx dx) (* dy dy))))))
+
 (defn drag-target
   [drag piles]
   ;; want to find the nearest drop position for the drag, which means:
@@ -231,12 +239,8 @@
                        :otherwise last-row-height)
           candidates (for [cx [left-col right-col]
                            cy [row-y (+ row-y row-height)]]
-                       [cx cy])
-          distance-squared (fn [[cx cy]]
-                             (let [dx (- x (+ cx half-card-width))
-                                   dy (- y (+ cy half-card-height))]
-                               (+ (* dx dx) (* dy dy))))]
-      (first (sort-by distance-squared candidates)))))
+                       [cx cy])]
+      (first (sort-by (distance-squared-to x y) candidates)))))
 
 ;;
 ;; State Actions
