@@ -8,6 +8,7 @@
                  [bigml/sampling "3.0"]
                  [cheshire "5.4.0"]
                  [clj-http "1.0.1"]
+                 [cljs-ajax "0.3.4"]
                  [compojure "1.3.1"]
                  [org.clojars.franks42/cljs-uuid-utils "0.1.3"]
                  [jamesmacaulay/zelkova "0.2.0"]
