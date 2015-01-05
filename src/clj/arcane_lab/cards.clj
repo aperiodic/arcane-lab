@@ -81,7 +81,8 @@
           (take amount))))))
 
 (defn booster
-  ([set-code] (booster set-code (rand-int Integer/MAX_VALUE)))
+  ([set-code] (booster set-code (+ (System/currentTimeMillis)
+                                   (rand-int Integer/MAX_VALUE))))
   ([set-code seed]
    (if-let [{:keys [cards] :as set} (get booster-sets set-code)]
      (let [booster-spec (remove #{"marketing"} (:booster set))]
