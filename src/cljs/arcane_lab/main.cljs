@@ -31,6 +31,7 @@
 (def pile-spacing (+ card-width gutter))
 
 (def u-key-code 85)
+(def r-key-code 82)
 
 ;;
 ;; Card Creation & Sorting
@@ -302,15 +303,44 @@
 ;; State Manipulation
 ;;
 
-(def !state-history (atom []))
+(def !fate (atom {:past [], :future ()}))
 
 (defn add-to-history-if-new!
   [state]
-  (let [history @!state-history
-        latest (last history)]
-    (when (not= state latest)
-      (swap! !state-history conj state))
-    state))
+  (swap! !fate (fn [{:keys [past] :as fate}]
+                 (if (= state (last past))
+                   fate
+                   (-> fate
+                     (update-in [:past] (fnil conj []) state)
+                     (assoc :future ())))))
+  state)
+
+(defn do-rewind
+  [fate]
+  (let [{:keys [past]} fate]
+    (if (<= (count past) 1)
+      fate
+      (-> fate
+        (update-in [:past] (comp vec butlast))
+        (update-in [:future] (fnil conj ()) (last past))))))
+
+(defn rewind!
+  [current]
+  (let [fate' (swap! !fate do-rewind)]
+    (-> fate' :past last)))
+
+(defn do-skip
+  [fate]
+  (if-let [new-present (-> fate :future first)]
+    (-> fate
+      (update-in [:future] rest)
+      (update-in [:past] (fnil conj []) new-present))
+    fate))
+
+(defn skip-ahead!
+  [current]
+  (let [fate' (swap! !fate do-skip)]
+    (-> fate' :past last)))
 
 ;;
 ;; Signal Graph's State Actions
@@ -397,20 +427,21 @@
                (add-to-history-if-new!)))
       :otherwise state)))
 
-(defn rollback-state-action
+(defn rewind-state-action
   [_]
-  (fn [current]
-    (let [history @!state-history]
-      (if (<= (count history) 1)
-        current
-        (let [history' (-> (butlast history) vec)
-              previous (last history')]
-          (reset! !state-history history')
-          previous)))))
+  (fn [current] (rewind! current)))
+
+(defn skip-ahead-state-action
+  [_]
+  (fn [current] (skip-ahead! current)))
 
 ;;
 ;; Signal Graph
 ;;
+
+(defn on-key-code-down
+  [code]
+  (sig/keep-if identity true (sig/drop-repeats (keys/down? code))))
 
 (defn state-signal
   [initial-state]
@@ -424,14 +455,14 @@
         click-down (sig/keep-if identity true (sig/drop-repeats mouse/down?))
         click-down-coords (sig/sample-on click-down mouse/position)
         click-up (sig/keep-if not false (sig/drop-repeats mouse/down?))
-        u-key-down (sig/keep-if identity true (sig/drop-repeats (keys/down? u-key-code)))
         actions (sig/merge
                   (sig/lift start-drag-action click-down-coords)
                   (sig/lift start-selection-if-not-dragging-action drag-start-coords)
                   (sig/lift update-selection-or-drag-destination-action drag-coords)
                   (sig/lift stop-selection-or-drag-action stop-drag)
                   (sig/lift stop-selection-or-drag-action click-up)
-                  (sig/lift rollback-state-action u-key-down)
+                  (sig/lift rewind-state-action (on-key-code-down u-key-code))
+                  (sig/lift skip-ahead-state-action (on-key-code-down r-key-code))
                   (sig/constant identity))]
     (sig/reducep (fn [state action] (action state))
                  initial-state
@@ -564,7 +595,7 @@
                            blank-state
                            (concat rare-piles color-piles))
         state-atom (sig/pipe-to-atom (state-signal init-state))]
-    (swap! !state-history conj init-state)
+    (swap! !fate update-in [:past] (fnil conj ()) init-state)
     (start-om state-atom)))
 
 (defn api-error
