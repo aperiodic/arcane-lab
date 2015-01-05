@@ -3,6 +3,7 @@
             [cljs-uuid-utils :refer [make-random-uuid]]
             [clojure.string :as str]
             [jamesmacaulay.zelkova.signal :as sig]
+            [jamesmacaulay.zelkova.keyboard :as keys]
             [jamesmacaulay.zelkova.mouse :as mouse]
             [jamesmacaulay.zelkova.time :as time]
             [jamesmacaulay.async-tools.core :as tools]
@@ -28,6 +29,8 @@
 (def half-gutter (int (/ gutter 2)))
 (def pile-stride (int (/ card-height 9.5)))
 (def pile-spacing (+ card-width gutter))
+
+(def u-key-code 85)
 
 ;;
 ;; Card Creation & Sorting
@@ -296,7 +299,21 @@
       (first (sort-by (distance-squared-to x y) candidates)))))
 
 ;;
-;; State Actions
+;; State Manipulation
+;;
+
+(def !state-history (atom []))
+
+(defn add-to-history-if-new!
+  [state]
+  (let [history @!state-history
+        latest (last history)]
+    (when (not= state latest)
+      (swap! !state-history conj state))
+    state))
+
+;;
+;; Signal Graph's State Actions
 ;;
 
 (defn start-drag-action
@@ -376,8 +393,20 @@
              (-> state
                (add-pile new-pile)
                (update-in [:piles] rejigger-rows)
-               (dissoc :drag)))
+               (dissoc :drag)
+               (add-to-history-if-new!)))
       :otherwise state)))
+
+(defn rollback-state-action
+  [_]
+  (fn [current]
+    (let [history @!state-history]
+      (if (<= (count history) 1)
+        current
+        (let [history' (-> (butlast history) vec)
+              previous (last history')]
+          (reset! !state-history history')
+          previous)))))
 
 ;;
 ;; Signal Graph
@@ -395,12 +424,14 @@
         click-down (sig/keep-if identity true (sig/drop-repeats mouse/down?))
         click-down-coords (sig/sample-on click-down mouse/position)
         click-up (sig/keep-if not false (sig/drop-repeats mouse/down?))
+        u-key-down (sig/keep-if identity true (sig/drop-repeats (keys/down? u-key-code)))
         actions (sig/merge
                   (sig/lift start-drag-action click-down-coords)
                   (sig/lift start-selection-if-not-dragging-action drag-start-coords)
                   (sig/lift update-selection-or-drag-destination-action drag-coords)
                   (sig/lift stop-selection-or-drag-action stop-drag)
                   (sig/lift stop-selection-or-drag-action click-up)
+                  (sig/lift rollback-state-action u-key-down)
                   (sig/constant identity))]
     (sig/reducep (fn [state action] (action state))
                  initial-state
@@ -490,7 +521,7 @@
     {:target (. js/document (getElementById "app"))}))
 
 ;;
-;; Initial State Setup
+;; App Setup
 ;;
 
 (def blank-state {:piles (sorted-map)})
@@ -531,8 +562,10 @@
         color-piles (map pile-for-color-at-x colors-and-xs)
         init-state (reduce (fn [state pile] (add-pile state pile))
                            blank-state
-                           (concat rare-piles color-piles))]
-    (start-om (sig/pipe-to-atom (state-signal init-state)))))
+                           (concat rare-piles color-piles))
+        state-atom (sig/pipe-to-atom (state-signal init-state))]
+    (swap! !state-history conj init-state)
+    (start-om state-atom)))
 
 (defn api-error
   [{:keys [status], {:keys [msg kind]} :response}]
