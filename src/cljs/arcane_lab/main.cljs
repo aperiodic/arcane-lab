@@ -461,15 +461,16 @@
 
 (defn state-signal
   [initial-state]
-  (let [drag-coords (sig/keep-when mouse/down? [0 0] mouse/position)
+  (let [app-mouse-position (sig/lift #(update-in % [1] - 24) mouse/position)
+        drag-coords (sig/keep-when mouse/down? [0 0] app-mouse-position)
         dragging? (let [true-on-dragmove (sig/sample-on drag-coords (sig/constant true))]
                     (->> (sig/merge (sig/keep-if not false mouse/down?) true-on-dragmove)
                       sig/drop-repeats))
         start-drag (sig/keep-if identity true dragging?)
         stop-drag (sig/keep-if not false dragging?)
-        drag-start-coords (sig/sample-on start-drag mouse/position)
+        drag-start-coords (sig/sample-on start-drag app-mouse-position)
         click-down (sig/keep-if identity true (sig/drop-repeats mouse/down?))
-        click-down-coords (sig/sample-on click-down mouse/position)
+        click-down-coords (sig/sample-on click-down app-mouse-position)
         click-up (sig/keep-if not false (sig/drop-repeats mouse/down?))
         undo-button-down (sig/input false :undo-button undo-channel)
         actions (sig/merge
