@@ -1,7 +1,9 @@
 (ns arcane-lab.main
   (:require [ajax.core :as async-http]
             [cljs-uuid-utils :refer [make-random-uuid]]
+            [cljs.core.async :as async]
             [clojure.string :as str]
+            [goog.events :as events]
             [jamesmacaulay.zelkova.signal :as sig]
             [jamesmacaulay.zelkova.keyboard :as keys]
             [jamesmacaulay.zelkova.mouse :as mouse]
@@ -428,8 +430,10 @@
       :otherwise state)))
 
 (defn rewind-state-action
-  [_]
-  (fn [current] (rewind! current)))
+  [should-rewind?]
+  (if should-rewind?
+    (fn [current] (rewind! current))
+    identity))
 
 (defn skip-ahead-state-action
   [_]
@@ -438,6 +442,18 @@
 ;;
 ;; Signal Graph
 ;;
+
+(defn listen
+  [el type & args]
+  (let [out (apply async/chan 1 args)]
+    (events/listen el type (fn [e] (async/put! out e)))
+    out))
+
+(defn undo-channel
+  [_ _]
+  (listen (.getElementById js/document "undo-button")
+          "click"
+          (map (constantly true))))
 
 (defn on-key-code-down
   [code]
@@ -455,6 +471,7 @@
         click-down (sig/keep-if identity true (sig/drop-repeats mouse/down?))
         click-down-coords (sig/sample-on click-down mouse/position)
         click-up (sig/keep-if not false (sig/drop-repeats mouse/down?))
+        undo-button-down (sig/input false :undo-button undo-channel)
         actions (sig/merge
                   (sig/lift start-drag-action click-down-coords)
                   (sig/lift start-selection-if-not-dragging-action drag-start-coords)
@@ -462,6 +479,7 @@
                   (sig/lift stop-selection-or-drag-action stop-drag)
                   (sig/lift stop-selection-or-drag-action click-up)
                   (sig/lift rewind-state-action (on-key-code-down u-key-code))
+                  (sig/lift rewind-state-action undo-button-down)
                   (sig/lift skip-ahead-state-action (on-key-code-down r-key-code))
                   (sig/constant identity))]
     (sig/reducep (fn [state action] (action state))

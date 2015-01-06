@@ -5,6 +5,7 @@
             :url "https://gnu.org/licenses/gpl-3.0.txt"}
   :dependencies [[org.clojure/clojure "1.7.0-alpha4"]
                  [org.clojure/clojurescript "0.0-2411"]
+                 [org.clojure/core.async "0.1.346.0-17112a-alpha"]
                  [bigml/sampling "3.0"]
                  [cheshire "5.4.0"]
                  [clj-http "1.0.1"]

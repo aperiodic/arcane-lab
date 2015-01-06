@@ -27,6 +27,18 @@ img {
   outline: 4px dashed #c21700;
 }
 
+#app {
+  position: relative;
+}
+
 #hud {
   background: rgba(255,255,255, 0.6);
+}
+
+#ui {
+  z-index: 1;
+}
+
+#ui > a {
+  color: white;
 }
