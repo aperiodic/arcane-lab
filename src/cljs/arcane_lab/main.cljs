@@ -455,6 +455,12 @@
           "click"
           (map (constantly true))))
 
+(defn redo-channel
+  [_ _]
+  (listen (.getElementById js/document "redo-button")
+          "click"
+          (map (constantly true))))
+
 (defn on-key-code-down
   [code]
   (sig/keep-if identity true (sig/drop-repeats (keys/down? code))))
@@ -473,6 +479,7 @@
         click-down-coords (sig/sample-on click-down app-mouse-position)
         click-up (sig/keep-if not false (sig/drop-repeats mouse/down?))
         undo-button-down (sig/input false :undo-button undo-channel)
+        redo-button-down (sig/input false :redo-button redo-channel)
         actions (sig/merge
                   (sig/lift start-drag-action click-down-coords)
                   (sig/lift start-selection-if-not-dragging-action drag-start-coords)
@@ -482,6 +489,7 @@
                   (sig/lift rewind-state-action (on-key-code-down u-key-code))
                   (sig/lift rewind-state-action undo-button-down)
                   (sig/lift skip-ahead-state-action (on-key-code-down r-key-code))
+                  (sig/lift skip-ahead-state-action redo-button-down)
                   (sig/constant identity))]
     (sig/reducep (fn [state action] (action state))
                  initial-state
