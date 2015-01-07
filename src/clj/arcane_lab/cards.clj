@@ -1,5 +1,5 @@
 (ns arcane-lab.cards
-  (:require bigml.sampling.simple
+  (:require [arcane-lab.utils :refer [sample]]
             [clojure.java.io :as io]
             [clojure.string :as str]
             [clojure.walk :refer [postwalk]]
@@ -52,15 +52,6 @@
   (->> (get booster-sets :CHK)
     :cards
     :basic-land))
-
-(defn sample
-  ([from seed]
-   (bigml.sampling.simple/sample from :seed seed :generator :twister))
-  ([from seed weights]
-   (bigml.sampling.simple/sample from
-                                 :weigh weights
-                                 :seed seed
-                                 :generator :twister)))
 
 (def special-land-sampler
   {})
