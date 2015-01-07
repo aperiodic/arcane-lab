@@ -1,41 +1,5 @@
-.box, .card {
-       box-sizing: border-box;
-  -moz-box-sizing: border-box;
-}
-
 body {
   background: rgb(17, 15, 12);
-}
-
-body, div, img {
-          user-select: none;
-     -moz-user-select: -moz-none;
-   -khtml-user-select: none;
-  -webkit-user-select: none;
-       -o-user-select: none;
-}
-
-img {
-  pointer-events: none;
-}
-
-#selection, .selected {
-  outline: 3px solid #39C527;
-}
-
-.ghost {
-  outline: 4px dashed #c21700;
-}
-
-#hud {
-  background: rgba(255,255,255, 0.6);
-}
-
-#app {
-  position: relative;
-  left: -8px;
-  top: 16px;
-  z-index: 10;
 }
 
 #ui {
@@ -50,4 +14,39 @@ img {
 
 .button {
   margin-right: 0.5em;
+}
+
+#app {
+  position: relative;
+  left: -8px;
+  top: 16px;
+  z-index: 10;
+}
+
+#selection, .selected {
+  outline: 3px solid #39C527;
+}
+
+.ghost {
+  outline: 4px dashed #c21700;
+}
+
+#hud {
+  background: rgba(255,255,255, 0.6);
+}
+
+/* Weird Settings */
+
+/* turn off element selection/highliting */
+body, div, img {
+          user-select: none;
+     -moz-user-select: -moz-none;
+   -khtml-user-select: none;
+  -webkit-user-select: none;
+       -o-user-select: none;
+}
+
+/* turn off image dragging */
+img {
+  pointer-events: none;
 }
