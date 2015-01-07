@@ -18,6 +18,10 @@ body {
   margin-right: 0.5em;
 }
 
+#new-pool-button {
+  margin-left: 35em;
+}
+
 #app {
   position: relative;
   left: -8px;
