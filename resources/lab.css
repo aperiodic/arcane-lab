@@ -1,5 +1,7 @@
 body {
   background: rgb(17, 15, 12);
+  font-family: "Open Sans", "Helvetica Neue", "Helvetica", "Lucida Grande", Arial, sans-serif;
+  font-size: 18px;
 }
 
 #ui {
