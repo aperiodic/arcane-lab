@@ -1,5 +1,5 @@
 (ns arcane-lab.cards
-  (:require [arcane-lab.utils :refer [sample]]
+  (:require [arcane-lab.utils :refer [rand-seed sample]]
             [clojure.java.io :as io]
             [clojure.string :as str]
             [clojure.walk :refer [postwalk]]
@@ -72,8 +72,7 @@
           (take amount))))))
 
 (defn booster
-  ([set-code] (booster set-code (+ (System/currentTimeMillis)
-                                   (rand-int Integer/MAX_VALUE))))
+  ([set-code] (booster set-code (rand-seed)))
   ([set-code seed]
    (if-let [{:keys [cards] :as set} (get booster-sets set-code)]
      (let [booster-spec (remove #{"marketing"} (:booster set))]

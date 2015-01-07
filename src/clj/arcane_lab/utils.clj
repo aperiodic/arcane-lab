@@ -8,6 +8,9 @@
       (catch NumberFormatException _
         nil))))
 
+(defn rand-seed [] (+ (mod (System/currentTimeMillis) (* 365 24 60 60 1000))
+                      (rand-int Integer/MAX_VALUE)))
+
 (defn sample
   ([from seed]
    (bigml.sampling.simple/sample from :seed seed :generator :twister))
