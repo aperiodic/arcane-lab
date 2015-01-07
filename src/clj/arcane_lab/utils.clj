@@ -1,10 +1,10 @@
 (ns arcane-lab.utils
   (:require [bigml.sampling.simple]))
 
-(defn str->int
+(defn str->long
   [x]
   (let [str-x (if (char? x) (str x) x)]
-    (try (Integer/parseInt str-x)
+    (try (Long/parseLong str-x)
       (catch NumberFormatException _
         nil))))
 

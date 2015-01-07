@@ -18,7 +18,7 @@
                  [ring/ring-defaults "0.1.3"]]
   :profiles {:dev {:plugins [[lein-cljsbuild "1.0.3"]
                              [lein-ring "0.8.11"]]}}
-  :ring {:handler arcane-lab.api/handler}
+  :ring {:handler arcane-lab.site/handler}
   :source-paths ["src/cljs" "src/clj"]
   :target-path "target/jvm/%s"
   :cljsbuild {:builds [{:id "arcane-lab"

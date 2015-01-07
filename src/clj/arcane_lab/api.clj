@@ -1,13 +1,11 @@
 (ns arcane-lab.api
   (:require [arcane-lab.cards :as cards]
-            [arcane-lab.utils :refer [str->int]]
+            [arcane-lab.utils :refer [rand-seed str->long]]
             [clojure.string :as str]
             [compojure.core :refer [defroutes GET]]
             [compojure.route :as route]
             [ring.middleware.defaults :refer [api-defaults wrap-defaults]]
-            [ring.middleware.resource :refer [wrap-resource]]
-            [ring.middleware.content-type :refer [wrap-content-type]]
-            [ring.middleware.not-modified :refer [wrap-not-modified]]))
+            [ring.util.response :as resp]))
 
 (defn pack-spec->codes
   "Turn a pack spec, which has the syntax of:
@@ -22,7 +20,7 @@
   [pack-spec]
   (loop [spec (seq pack-spec), codes ()]
     (if-let [maybe-quantifier (first spec)]
-      (let [quantifier? (str->int maybe-quantifier)
+      (let [quantifier? (str->long maybe-quantifier)
             quantifier (or quantifier? 1)
             set-code (->> (if quantifier? (rest spec) spec)
                        (take 3)
@@ -70,12 +68,14 @@
                     404)))
 
   (GET "/pool/:pack-spec" [pack-spec]
-       (let [boosters (map cards/booster (pack-spec->codes pack-spec))
-             cards (->> (apply concat boosters)
-                     (map full-card->client-card))
-             booster-count (count boosters)]
+       (let [seed (rand-seed)]
+         (resp/redirect (str "/" pack-spec "/" seed))))
+
+  (GET "/pool/:pack-spec/:seed" [pack-spec seed]
+       (let [set-codes (pack-spec->codes pack-spec)
+             booster-count (count set-codes)]
          (cond
-           (some nil? boosters)
+           (some nil? set-codes)
            (let [msg (str "Could not recognize these set codes: "
                           (str/join ", " (unrecognized-sets pack-spec)) ".")]
              (edn-resp {:msg msg, :kind "unrecognized-set"} 400))
@@ -85,13 +85,12 @@
                           " you asked for " booster-count ".")]
              (edn-resp {:msg msg, :kind "bad-booster-count"} 400))
 
-           :otherwise (edn-resp cards))))
+           :otherwise (-> (map full-card->client-card
+                               (cards/pool set-codes (str->long seed)))
+                        edn-resp))))
 
   (route/not-found (pr-str {:msg "404 Not Found", :kind "not-found"})))
 
 (def handler
   (-> routes
-    (wrap-resource "")
-    (wrap-content-type)
-    (wrap-not-modified)
     (wrap-defaults api-defaults)))

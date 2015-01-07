@@ -10,8 +10,7 @@
             [jamesmacaulay.zelkova.time :as time]
             [jamesmacaulay.async-tools.core :as tools]
             [om.core :as om :include-macros true]
-            [om.dom :as dom :include-macros true])
-  (:import goog.Uri.QueryData))
+            [om.dom :as dom :include-macros true]))
 
 (def rand-uuid make-random-uuid)
 
@@ -637,11 +636,10 @@
 
 (defn fetch-pool-and-start-app!
   []
-  (let [pack-spec (-> (-> js/document .-location .-search)
-                    (str/replace #"^\?" "")
-                    (goog.Uri.QueryData.)
-                    (.get "packs"))]
-    (async-http/GET (str "/pool/" (or pack-spec default-pack-spec))
+  (let [[pack-spec seed] (-> (-> js/document .-location .-pathname)
+                           (str/replace #"^/" "")
+                           (str/split #"/"))]
+    (async-http/GET (str "/api/pool/" (or pack-spec default-pack-spec) "/" seed)
                     {:format :edn
                      :handler start-app
                      :error-handler api-error})))

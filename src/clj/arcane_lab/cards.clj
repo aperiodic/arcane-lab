@@ -81,3 +81,9 @@
                        amount (count rarity-section)]
                    (sample-cards-by-rarity set rarity amount seed)))
                (partition-by identity booster-spec))))))
+
+(defn pool
+  ([set-codes] (pool set-codes (rand-seed)))
+  ([set-codes seed]
+   (let [gnr8r (java.util.Random. seed)]
+     (mapcat booster set-codes (repeatedly #(.nextLong gnr8r))))))
