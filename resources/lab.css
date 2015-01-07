@@ -38,9 +38,15 @@ img {
 }
 
 #ui {
-  z-index: 1;
+  position: relative;
+  left: 12px;
 }
 
-#ui > a {
-  color: white;
+.button > a {
+  color: rgb(234, 241, 251);
+  font-weight: bold;
+}
+
+.button {
+  margin-right: 0.5em;
 }
