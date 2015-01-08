@@ -616,7 +616,7 @@
              (render-selection selection))))
 
 ;;
-;; Om App
+;; App Setup
 ;;
 
 (defn start-om
@@ -629,13 +629,15 @@
     state
     {:target (. js/document (getElementById "app"))}))
 
-;;
-;; App Setup
-;;
+(defn start-app-from-state!
+  [init-state]
+  (let [state-atom (sig/pipe-to-atom (state-signal init-state))]
+    (swap! !fate update-in [:past] (fnil conj ()) init-state)
+    (start-om state-atom)))
 
 (def blank-state {:piles (sorted-map)})
 
-(defn start-app
+(defn api-cards->init-state
   [api-cards]
   (let [cards (map api-card->client-card
                    (remove basic-land? api-cards))
@@ -668,13 +670,15 @@
                               (let [col-cards (color->non-rares color)
                                     y (+ half-gutter card-height gutter)]
                                 (make-pile (sort-by :name col-cards) x y)))
-        color-piles (map pile-for-color-at-x colors-and-xs)
-        init-state (reduce (fn [state pile] (add-pile state pile))
-                           blank-state
-                           (concat rare-piles color-piles))
-        state-atom (sig/pipe-to-atom (state-signal init-state))]
-    (swap! !fate update-in [:past] (fnil conj ()) init-state)
-    (start-om state-atom)))
+        color-piles (map pile-for-color-at-x colors-and-xs)]
+        (reduce (fn [state pile] (add-pile state pile))
+                blank-state
+                (concat rare-piles color-piles))))
+
+(defn start-app-from-api-cards!
+  [api-cards]
+  (let [init-state (api-cards->init-state api-cards)]
+    (start-app-from-state! init-state)))
 
 (defn api-error
   [{:keys [status], {:keys [msg kind]} :response}]
@@ -686,14 +690,15 @@
 
 (def default-pack-spec "6KTK")
 
-(defn fetch-pool-and-start-app!
+(defn get-state-and-start-app!
   []
-  (let [[pack-spec seed] (-> (-> js/document .-location .-pathname)
-                           (str/replace #"^/" "")
-                           (str/split #"/"))]
-    (async-http/GET (str "/api/pool/" (or pack-spec default-pack-spec) "/" seed)
-                    {:format :edn
-                     :handler start-app
-                     :error-handler api-error})))
+  (let [page-path (-> js/document .-location .-pathname)
+        [pack-spec seed] (pack-spec-and-seed page-path)]
+    (if-let [saved-state (load-state pack-spec seed)]
+      (start-app-from-state! saved-state)
+      (async-http/GET (str "/api/pool/" (or pack-spec default-pack-spec) "/" seed)
+                      {:format :edn
+                       :handler start-app-from-api-cards!
+                       :error-handler api-error}))))
 
-(fetch-pool-and-start-app!)
+(get-state-and-start-app!)
