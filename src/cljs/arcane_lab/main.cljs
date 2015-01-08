@@ -401,13 +401,28 @@
 
 (defn update-selection-or-drag-destination-action
   [pos]
-  (fn [{:keys [selection drag] :as state}]
-    (cond
-      selection (update-in state [:selection] assoc :stop pos)
-      drag (let [[x y] pos
-                 [px py] (drag-pile-pos x y)]
-             (assoc state :drag (make-pile (:cards drag) px py)))
-      :otherwise state)))
+  (fn [{:keys [drag selection piles] :as state}]
+    (let [max-pile-x (loop [rows (seq piles), x-max 0]
+                       (if-let [[_ row] (first rows)]
+                         (let [row-max (loop [xs (keys row), row-max 0]
+                                         (if-let [x (first xs)]
+                                           (if (> x row-max)
+                                             (recur (next xs) x)
+                                             (recur (next xs) row-max))
+                                           row-max))]
+                           (if (> row-max x-max)
+                             (recur (next rows) row-max)
+                             (recur (next rows) x-max)))
+                         x-max))
+          max-x (+ max-pile-x card-width gutter
+                   (if drag (+ card-width half-card-width) 0))
+          x (min max-x (nth pos 0))
+          y (nth pos 1)]
+      (cond
+        selection (update-in state [:selection] assoc :stop [x y])
+        drag (let [[px py] (drag-pile-pos x y)]
+               (assoc state :drag (make-pile (:cards drag) px py)))
+        :otherwise state))))
 
 (defn stop-selection-or-drag-action
   [_]
