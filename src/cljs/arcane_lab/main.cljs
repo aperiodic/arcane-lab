@@ -2,6 +2,7 @@
   (:require [ajax.core :as async-http]
             [cljs-uuid-utils :refer [make-random-uuid]]
             [cljs.core.async :as async]
+            [cljs.reader :as reader]
             [clojure.string :as str]
             [goog.events :as events]
             [jamesmacaulay.zelkova.signal :as sig]
@@ -299,6 +300,40 @@
                            cy [row-y (+ row-y row-height)]]
                        [cx cy])]
       (first (sort-by (distance-squared-to x y) candidates)))))
+
+;;
+;; Saving & Loading State
+;;
+
+(defn state-key
+  [pack-spec seed]
+  (str pack-spec "|" seed))
+
+(defn pack-spec-and-seed
+  [page-path]
+  (-> page-path
+    (str/replace #"^/" "")
+    (str/split #"/")))
+
+(defn save-state!
+  [state]
+  (let [page-path (-> js/document .-location .-pathname)
+        [ps seed] (pack-spec-and-seed page-path)
+        pool-key (state-key ps seed)
+        ts (-> (js/Date.) .getTime (/ 1000) int)
+        clean-state (-> state
+                      (dissoc :drag)
+                      (dissoc :selection))
+        pool-state {:modified ts, :state clean-state}]
+    (.setItem js/localStorage pool-key (pr-str pool-state))))
+
+(defn load-state
+  [pack-spec seed]
+  (if-let [saved-state (.getItem js/localStorage (state-key pack-spec seed))]
+    (let [unsorted-state (-> (reader/read-string saved-state) :state)]
+      {:piles (into (sorted-map) (for [[y row] (:piles unsorted-state)]
+                                   [y (into (sorted-map) (for [[x pile] row]
+                                                           [x pile]))]))})))
 
 ;;
 ;; State Manipulation
