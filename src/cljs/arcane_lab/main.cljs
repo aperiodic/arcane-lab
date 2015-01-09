@@ -35,6 +35,9 @@
 (def u-key-code 85)
 (def r-key-code 82)
 
+;; not technically constant, but will be for my lifetime
+(def ts-digits (-> (js/Date.) .getTime (/ 1000) int str count))
+
 ;;
 ;; Card Creation & Sorting
 ;;
@@ -320,17 +323,17 @@
   (let [page-path (-> js/document .-location .-pathname)
         [ps seed] (pack-spec-and-seed page-path)
         pool-key (state-key ps seed)
-        ts (-> (js/Date.) .getTime (/ 1000) int)
+        ts (-> (js/Date.) .getTime (/ 1000) int str)
         clean-state (-> state
                       (dissoc :drag)
                       (dissoc :selection))
-        pool-state {:modified ts, :state clean-state}]
-    (.setItem js/localStorage pool-key (pr-str pool-state))))
+        serialized (str ts (pr-str clean-state))]
+    (.setItem js/localStorage pool-key serialized)))
 
 (defn load-state
   [pack-spec seed]
   (if-let [saved-state (.getItem js/localStorage (state-key pack-spec seed))]
-    (let [unsorted-state (-> (reader/read-string saved-state) :state)]
+    (let [unsorted-state (reader/read-string (.substr saved-state ts-digits))]
       {:piles (into (sorted-map) (for [[y row] (:piles unsorted-state)]
                                    [y (into (sorted-map) (for [[x pile] row]
                                                            [x pile]))]))})))
