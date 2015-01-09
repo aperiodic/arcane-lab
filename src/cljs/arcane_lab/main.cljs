@@ -328,7 +328,14 @@
                       (dissoc :drag)
                       (dissoc :selection))
         serialized (str ts (pr-str clean-state))]
-    (.setItem js/localStorage pool-key serialized)))
+    (try
+      (.setItem js/localStorage pool-key serialized)
+      (catch js/Error e
+        (if (= (.-name e) "QuotaExceededError")
+          (do
+            (.cleanStorage js/window)
+            (.setItem js/localStorage pool-key serialized))
+          (throw e))))))
 
 (defn load-state
   [pack-spec seed]
