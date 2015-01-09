@@ -349,11 +349,10 @@
   (swap! !fate (fn [{:keys [past] :as fate}]
                  (if (= state (last past))
                    fate
-                   (do
-                     (save-state! state)
-                     (-> fate
-                       (update-in [:past] (fnil conj []) state)
-                       (assoc :future ()))))))
+                   (-> fate
+                     (update-in [:past] (fnil conj []) state)
+                     (assoc :future ())))))
+  (save-state! state)
   state)
 
 (defn do-rewind
