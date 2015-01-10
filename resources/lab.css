@@ -25,8 +25,7 @@ body {
 #app {
   position: relative;
   left: -8px;
-  top: 16px;
-  z-index: 10;
+  top: 12px;
 }
 
 #selection, .selected {

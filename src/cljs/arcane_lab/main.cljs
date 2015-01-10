@@ -32,6 +32,8 @@
 (def pile-stride (int (/ card-height 9.5)))
 (def pile-spacing (+ card-width gutter))
 
+(def mouse-y-offset 44)
+
 (def u-key-code 85)
 (def r-key-code 82)
 
@@ -527,7 +529,7 @@
 
 (defn state-signal
   [initial-state]
-  (let [app-mouse-position (sig/lift #(update-in % [1] - 24) mouse/position)
+  (let [app-mouse-position (sig/lift #(update-in % [1] - mouse-y-offset) mouse/position)
         drag-coords (sig/keep-when mouse/down? [0 0] app-mouse-position)
         dragging? (let [true-on-dragmove (sig/sample-on drag-coords (sig/constant true))]
                     (->> (sig/merge (sig/keep-if not false mouse/down?) true-on-dragmove)
