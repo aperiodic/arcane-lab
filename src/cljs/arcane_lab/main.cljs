@@ -620,6 +620,23 @@
                              (.stringify js/JSON
                                (clj->js dragged-ids) nil 2))))))
 
+(defn render-footer
+  [state]
+  (let [{:keys [drag piles]} state
+        max-y (+ (apply max (keys piles))
+                 (row-height (get piles (last (keys piles)))))]
+    (dom/div #js {:id "footer"
+                  :style #js {:position "absolute"
+                              :top max-y}}
+             (dom/div #js {:className "disclaimer"}
+                      (dom/strong nil "Magic: the Gathering")
+                      " is © Wizards of the Coast"
+                      " • Urza's Workshop is in no way affiliated with Wizards of the Coast")
+             (dom/div #js {:className "disclaimer"}
+                      "Data from " (dom/a #js {:href "http://mtgjson.com"} "mtgjson.com")
+                      ", images from " (dom/a #js {:href "http://mtgimage.com"} "mtgimage.com")
+                      " • Made by Dan Lidral-Porter"))))
+
 (defn render-state
   [state]
   (let [{selection :selection} state
@@ -627,7 +644,8 @@
     (dom/div #js {:id "dom-root"}
              (apply dom/div {:id "piles"} (map #(render-pile % selection) piles))
              (render-drag (:drag state) (:piles state))
-             (render-selection selection))))
+             (render-selection selection)
+             (render-footer state))))
 
 ;;
 ;; App Setup

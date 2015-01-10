@@ -34,10 +34,36 @@ body {
 
 .ghost {
   outline: 4px dashed #c21700;
+  z-index: 2;
+}
+
+.card {
+  z-index: 3;
+}
+
+#selection {
+  z-index: 4;
 }
 
 #hud {
   background: rgba(255,255,255, 0.6);
+}
+
+#footer {
+  width: 100%;
+  text-align: center;
+  padding-bottom: 0.5em;
+}
+
+.disclaimer {
+  color: rgb(134, 115, 86);
+  font-size: 14px;
+}
+
+.disclaimer > a, .disclaimer > a:visited {
+  font-weight: bold;
+  text-decoration: none;
+  color: rgb(134, 115, 86);
 }
 
 /* Weird Settings */
