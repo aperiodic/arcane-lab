@@ -171,6 +171,10 @@
     (->> (reductions #(- %2 %1) row-ys)
       (drop 1))))
 
+(defn row-height
+  [row]
+  (+ gutter (apply max (map pile-height (vals row)))))
+
 (defn pile-after-selection
   "Given a selection and a pile returns a new pile with the cards that the
   selection hits marked by setting their :selected? field to true."
@@ -288,21 +292,20 @@
           all-piles (mapcat vals rows)
           row-ys (keys piles)
           row-count (count piles)
-          last-row-height (let [last-row-piles (-> (get piles (last row-ys)) vals)]
-                            (+ gutter (apply max (map pile-height last-row-piles))))
+          last-row-height (row-height (get piles (last row-ys)))
           row-spacings (conj (vec (row-spacings row-ys))
                              last-row-height)
           [before-and-on after] (split-with #(<= % y) row-ys)
           first-row-y half-gutter
           row-y (or (last before-and-on) first-row-y)
-          row-height (cond
-                       (= row-count 1) (first row-spacings)
-                       (< y first-row-y) (first row-spacings)
-                       (not (empty? after)) (nth row-spacings
-                                                 (dec (count before-and-on)))
-                       :otherwise last-row-height)
+          curr-row-height (cond
+                            (= row-count 1) (first row-spacings)
+                            (< y first-row-y) (first row-spacings)
+                            (not (empty? after)) (nth row-spacings
+                                                      (dec (count before-and-on)))
+                            :otherwise last-row-height)
           candidates (for [cx [left-col right-col]
-                           cy [row-y (+ row-y row-height)]]
+                           cy [row-y (+ row-y curr-row-height)]]
                        [cx cy])]
       (first (sort-by (distance-squared-to x y) candidates)))))
 
