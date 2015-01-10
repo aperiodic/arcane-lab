@@ -16,7 +16,6 @@
 
 (def all-sets
   (-> (io/resource "cards-by-set.json")
-    io/file
     slurp
     (json/decode true)))
 
