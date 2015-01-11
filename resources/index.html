@@ -1,11 +1,22 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Urza's Workshop</title>
+    <title>Lab Maniac</title>
     <meta name="description" content="A webapp that lets you practice building Magic: the Gathering sealed pools">
     <link rel="stylesheet" type="text/css" href="/lab.css">
   </head>
   <body>
+    <div id="meta">
+      Lab Maniac lets a planeswalker practice their craft.
+      You can edit the format by editing the first component of the URL (the bit after labmaniac.com, that looks something like "6KTK").
+      If you mess up a pack name or don't provide six packs, then you'll get an error message rather than an invalid pool.
+
+      Caveats:
+        * Sets with weird slots such as a guaranteed basic lands cycle, double-faced cards, or crazy nonsense (such as Return to Ravnica, Innistrad, or Timespiral) generate packs that don't match the real ones.
+        * The chance of a rare collision is higher because print runs aren't emulated.
+        * Also, print runs aren't emulated.
+        * No extra-rare common (a.k.a the 101st common).
+    </div>
     <div id="ui">
       <span class="button"><a id="undo-button" href="#">Undo</a></span>
       <span class="button"><a id="redo-button" href="#">Redo</a></span>

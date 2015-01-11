@@ -631,7 +631,7 @@
              (dom/div #js {:className "disclaimer"}
                       (dom/strong nil "Magic: the Gathering")
                       " is © Wizards of the Coast"
-                      " • Urza's Workshop is in no way affiliated with Wizards of the Coast")
+                      " • Lab Maniac is in no way affiliated with Wizards of the Coast")
              (dom/div #js {:className "disclaimer"}
                       "Data from " (dom/a #js {:href "http://mtgjson.com"} "mtgjson.com")
                       ", images from " (dom/a #js {:href "http://mtgimage.com"} "mtgimage.com")
