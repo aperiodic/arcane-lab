@@ -19,3 +19,11 @@
                                  :weigh weights
                                  :seed seed
                                  :generator :twister)))
+
+(defn wrap-ignore-trailing-slash
+  [handler]
+  (fn [{:keys [uri] :as request}]
+    (let [no-trailing (if (and (not= "/" uri) (.endsWith uri "/"))
+                        (subs uri 0 (- (count uri) 1))
+                        uri)]
+      (handler (assoc request :uri no-trailing)))))

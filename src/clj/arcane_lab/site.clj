@@ -1,7 +1,7 @@
 (ns arcane-lab.site
   (:require [arcane-lab.api :as api]
             [arcane-lab.cards :as cards]
-            [arcane-lab.utils :refer [rand-seed]]
+            [arcane-lab.utils :refer [rand-seed wrap-ignore-trailing-slash]]
             [compojure.core :refer [context defroutes GET]]
             [compojure.route :as route]
             [ring.middleware.content-type :refer [wrap-content-type]]
@@ -32,4 +32,5 @@
     (wrap-defaults site-defaults)
     (wrap-resource "")
     (wrap-content-type)
-    (wrap-not-modified)))
+    (wrap-not-modified)
+    (wrap-ignore-trailing-slash)))
