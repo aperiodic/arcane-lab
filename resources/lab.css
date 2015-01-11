@@ -4,6 +4,11 @@ body {
   font-size: 18px;
 }
 
+#meta {
+  position: fixed;
+  top: 100%;
+}
+
 #ui {
   position: relative;
   left: 12px;
