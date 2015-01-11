@@ -1,5 +1,6 @@
 (ns arcane-lab.cards
   (:require [arcane-lab.utils :refer [rand-seed sample]]
+            [bigml.sampling.simple]
             [clojure.java.io :as io]
             [clojure.string :as str]
             [clojure.walk :refer [postwalk]]
@@ -13,6 +14,7 @@
     keyword))
 
 (def rare-or-mythic #{:rare :mythic-rare})
+(def rare-weights {:rare 8, :mythic-rare 1})
 
 (def all-sets
   (-> (io/resource "cards-by-set.json")
@@ -64,10 +66,14 @@
         (->> (sample basic-lands seed) (take amount)))
       (let [rarity (if (and (vector? rarity)
                             (= (clojure.core/set rarity) rare-or-mythic))
-                     (first (sample rare-or-mythic seed {:rare 7 :mythic-rare 1}))
+                     (-> (bigml.sampling.simple/sample
+                            rare-or-mythic
+                            :seed seed :replace true :weigh rare-weights :generator :twister)
+                       (nth 10))
                      rarity)
             cards (rarity (:cards set))]
         (->> (sample cards seed)
+          (drop (-> (- (count cards) amount) (/ 2)))
           (take amount))))))
 
 (defn booster
@@ -85,4 +91,5 @@
   ([set-codes] (pool set-codes (rand-seed)))
   ([set-codes seed]
    (let [gnr8r (java.util.Random. seed)]
+     (repeatedly 10 #(.nextLong gnr8r))
      (mapcat booster set-codes (repeatedly #(.nextLong gnr8r))))))
