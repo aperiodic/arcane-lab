@@ -182,6 +182,53 @@
   [row]
   (+ gutter (apply max (map pile-height (vals row)))))
 
+(defn row-for
+  "Returns the last row whose y position is less than or equal to y's, or nil if
+  no such row exists."
+  [rows y]
+  (loop [rows (seq rows), row-hit nil]
+    (if-let [[row-y row] (first rows)]
+      (if (<= row-y y)
+        (recur (next rows) row)
+        row-hit)
+      row-hit)))
+
+(defn pile-for
+  "Returns the last pile in row whose x position is less than or equal to x's,
+  or nil no such pile exists in the row."
+  [row x]
+  (loop [piles (seq row), pile-hit nil]
+    (if-let [[pile-x pile] (first piles)]
+      (if (<= pile-x x)
+        (recur (next piles) pile)
+        pile-hit)
+      pile-hit)))
+
+(defn card-for
+  "Returns the last card in pile whose y position is less than y, or nil"
+  [pile y]
+  (loop [cards (:cards pile), card-hit nil]
+    (if-let [{card-y :y :as card} (first cards)]
+      (if (<= card-y y)
+        (recur (next cards) card)
+        card-hit)
+      card-hit)))
+
+(defn pile-under
+  [piles x y]
+  (if-let [row (row-for piles y)]
+    (if-let [pile (pile-for row x)]
+      (if (within-pile? pile x y)
+        pile))))
+
+(defn card-under
+  [piles x y]
+  (if-let [row (row-for piles y)]
+    (if-let [pile (pile-for row x)]
+      (if (within-pile? pile x y)
+        (card-for pile y)))))
+
+
 (defn pile-after-selection
   "Given a selection and a pile returns a new pile with the cards that the
   selection hits marked by setting their :selected? field to true."
