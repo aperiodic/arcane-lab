@@ -734,3 +734,17 @@
                        :error-handler api-error}))))
 
 (get-state-and-start-app!)
+
+;;
+;; Help Button
+;;
+
+(events/listen
+  (.getElementById js/document "help-button")
+  "click"
+  (fn [e]
+    (let [meta-div (.getElementById js/document "meta")
+          display? (not= (-> meta-div .-style .-display) "none")]
+      (if display?
+        (set! (-> meta-div .-style .-display) "none")
+        (set! (-> meta-div .-style .-display) "")))))

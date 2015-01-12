@@ -4,11 +4,6 @@ body {
   font-size: 18px;
 }
 
-#meta {
-  position: fixed;
-  top: 100%;
-}
-
 #ui {
   position: relative;
   left: 12px;
@@ -23,8 +18,24 @@ body {
   margin-right: 0.5em;
 }
 
+#help-button {
+  margin-right: 10.5em;
+}
+
 #new-pool-button {
-  margin-left: 35em;
+  margin-left: 21em;
+}
+
+#meta {
+  position: absolute;
+  top: 2.5em;
+  width: 50em;
+  z-index: 5;
+
+  color: rgb(17, 15, 12);
+  background: rgba(234, 241, 251, 0.93);
+  padding: 0 1em;
+  border-radius: 0 1.5em 1.5em;
 }
 
 #app {
@@ -74,7 +85,7 @@ body {
 /* Weird Settings */
 
 /* turn off element selection/highliting */
-body, div, img {
+#app, #app div, #ui, #ui span, #ui a, img {
           user-select: none;
      -moz-user-select: -moz-none;
    -khtml-user-select: none;
