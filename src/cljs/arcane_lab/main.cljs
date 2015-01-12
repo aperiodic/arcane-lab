@@ -683,15 +683,17 @@
 
 (defn render-hud
   [state]
-  (let [no-piles (dissoc state :piles)
-        dragged-ids (if (contains? no-piles :drag)
-                      (update-in no-piles [:drag :cards] (partial map :id))
-                      no-piles)]
+  (let [dragged-ids (if (contains? state :drag)
+                        (update-in state [:drag :cards] (partial map :id))
+                        state)
+        names-for-cards (into (sorted-map) (for [[y row] (:piles state)]
+                                             [y (into (sorted-map) (for [[x pile] row]
+                                                                     [x (map :name (:cards pile))]))]))]
     (dom/div #js {:id "hud", :style #js {:position "relative"}}
              (dom/pre nil
                       (dom/b nil
                              (.stringify js/JSON
-                               (clj->js dragged-ids) nil 2))))))
+                               (clj->js (assoc dragged-ids :piles names-for-cards)) nil 2))))))
 
 (defn render-footer
   [state]
