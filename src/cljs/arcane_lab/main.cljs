@@ -126,6 +126,13 @@
     (let [covered (dec (count cards))]
       (+ card-height (* pile-stride covered)))))
 
+(defn within-pile?
+  [pile x y]
+  (let [{l :x, t :y} pile
+        r (+ l card-width)
+        b (+ t (pile-height pile))]
+    (within? l r t b x y)))
+
 (defn nth-column-x
   [n]
   (+ (* n pile-spacing) half-gutter))
