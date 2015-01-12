@@ -453,35 +453,54 @@
 ;;
 
 (defn start-drag-action
+  "Start a drag if:
+    * there are selected cards and the click is on a pile with selected cards
+      (but not above the selected cards in that pile);
+    * there are no selected cards but the click is on some card (start dragging
+      just that card).
+  Returns the state with or without a newly-started drag, depending on if the
+  above criteria are satisfied. "
   [pos]
   (fn [{:keys [piles] :as state}]
     (let [piles-in-selection (filter #(some :selected? (:cards %))
                                      (mapcat vals (vals piles)))
           [x y] pos
-          drag-start? (loop [ps piles-in-selection]
-                        (if-let [{l :x, pt :y, cards :cards, :as p} (first ps)]
-                          (let [r (+ l card-width)
-                                t (-> (filter :selected? cards) first :y)
-                                b (+ pt (pile-height p))]
-                            (if (within? l r t b x y)
-                              true
-                              (recur (next ps))))
-                          ;; else (no more piles)
-                          false))]
-      (if-not drag-start?
-        (dissoc state :drag)
+          extant-selection-drag? (loop [ps piles-in-selection]
+                                   (if-let [{l :x, pt :y, cards :cards, :as p} (first ps)]
+                                     (let [r (+ l card-width)
+                                           t (-> (filter :selected? cards) first :y)
+                                           b (+ pt (pile-height p))]
+                                       (if (within? l r t b x y)
+                                         true
+                                         (recur (next ps))))
+                                     ;; else (no more piles)
+                                     false))
+          card-under-mouse (card-under piles x y)]
+
+      (cond
+        extant-selection-drag?
         (let [[drag-pile-x drag-pile-y] (drag-pile-pos x y)
               selected-cards (filter :selected?
-                                     (mapcat :cards piles-in-selection))
-              drag-pile (make-pile selected-cards drag-pile-x drag-pile-y)
-              state' (reduce (fn [state {px :x, py :y, cards :cards}]
-                               (if (empty? cards)
-                                 (remove-pile state px py)
-                                 (add-pile state (make-pile cards px py))))
-                             state
-                             (map #(update-in % [:cards] (partial remove :selected?))
-                                  piles-in-selection))]
-          (assoc state' :drag drag-pile))))))
+                                     (mapcat :cards piles-in-selection))]
+          (-> (reduce (fn [state {px :x, py :y, cards :cards}]
+                        (let [cards' (remove :selected? cards)]
+                          (if (empty? cards')
+                            (remove-pile state px py)
+                            (add-pile state (make-pile cards' px py)))))
+                      state
+                      piles-in-selection)
+            (assoc :drag (make-pile selected-cards drag-pile-x drag-pile-y))))
+
+        card-under-mouse ;; make drag pile w/only current card
+        (let [[dpx dpy] (drag-pile-pos x y)
+              {px :x, py :y :as pile} (pile-under piles x y)
+              pile-cards' (remove #(= (:id %) (:id card-under-mouse)) (:cards pile))]
+          (-> (if (empty? pile-cards')
+                (remove-pile state px py)
+                (add-pile state (make-pile pile-cards' px py)))
+            (assoc :drag (make-pile [card-under-mouse] dpx dpy))))
+
+        :otherwise (dissoc state :drag)))))
 
 (defn apply-selection
   [state selection]
