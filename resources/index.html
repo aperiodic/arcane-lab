@@ -7,15 +7,30 @@
   </head>
   <body>
     <div id="meta">
-      Lab Maniac lets a planeswalker practice their craft.
-      You can edit the format by editing the first component of the URL (the bit after labmaniac.com, that looks something like "6KTK").
-      If you mess up a pack name or don't provide six packs, then you'll get an error message rather than an invalid pool.
+      <p>
+        Lab Maniac lets planeswalkers practice their craft.
+      </p>
 
-      Caveats:
-        * Sets with weird slots such as a guaranteed basic lands cycle, double-faced cards, or crazy nonsense (such as Return to Ravnica, Innistrad, or Timespiral) generate packs that don't match the real ones.
-        * The chance of a rare collision is higher because print runs aren't emulated.
-        * Also, print runs aren't emulated.
-        * No extra-rare common (a.k.a the 101st common).
+      <p>
+      Click and drag with your mouse to select cards.
+      Once cards are selected, you can click and drag on any selected pile to move all the selected cards to a new place.
+      You can use the "Undo" and "Redo" buttons to move back and forward through your card movements.
+      You can also use the "u" and "r" keys on your keyboard as shortcuts for undo &amp; redo.
+      </p>
+
+      <p>
+      The "New Pool" button will generate a new pool with the same set of packs as the current pool.
+      You can change the format by changing the path of the URL (the bit after "http://labmaniac.com/", that looks something like "6KTK" followed by a slash and a bunch of numbers).
+      For example, to switch to the Lorwyn block sealed format, change the "6KTK" part in the URL to "3LRW3MOR", making the final URL "http://labmaniac.com/3LRW3MOR".
+      If you mess up a pack name or don't provide six packs, then you'll get an error message rather than an invalid pool.
+      </p>
+
+      <p>
+      The piles you've made will be saved in your browser.
+      This means that if you lay out a deck in a particular pool, you can go back to it later and see it (each URL corresponds to a unique pool).
+      Since it's just saved in your browser, if you use a different browser, or send the link to somebody else, they'll see the default starting layout.
+      There is limited space available to save the piles; once you get to around 100 saved pools, the oldest pools will be deleted to free up space for the new ones.
+      </p>
     </div>
     <div id="ui">
       <span class="button"><a id="undo-button" href="#">Undo</a></span>
