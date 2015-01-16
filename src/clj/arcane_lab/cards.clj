@@ -1,20 +1,20 @@
 (ns arcane-lab.cards
-  (:require [arcane-lab.utils :refer [rand-seed sample]]
+  (:require [arcane-lab.utils :refer [rand-seed sample words->key]]
             [bigml.sampling.simple]
             [clojure.java.io :as io]
-            [clojure.string :as str]
             [clojure.walk :refer [postwalk]]
             [cheshire.core :as json]))
 
-(defn words->key
-  [words]
-  (-> words
-    str/lower-case
-    (str/replace " " "-")
-    keyword))
+;;
+;; Definitions
+;;
 
 (def rare-or-mythic #{:rare :mythic-rare})
 (def rare-weights {:rare 8, :mythic-rare 1})
+
+;;
+;; Load Cards
+;;
 
 (def all-sets
   (-> (io/resource "cards-by-set.json")
@@ -56,6 +56,10 @@
 
 (def special-land-sampler
   {})
+
+;;
+;; Booster Sampling
+;;
 
 (defn sample-cards-by-rarity
   [set rarity amount seed]

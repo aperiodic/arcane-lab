@@ -1,5 +1,6 @@
 (ns arcane-lab.utils
-  (:require [bigml.sampling.simple]))
+  (:require [bigml.sampling.simple]
+            [clojure.string :as str]))
 
 (defn str->long
   [x]
@@ -7,6 +8,13 @@
     (try (Long/parseLong str-x)
       (catch NumberFormatException _
         nil))))
+
+(defn words->key
+  [words]
+  (-> words
+    str/lower-case
+    (str/replace " " "-")
+    keyword))
 
 (defn rand-seed [] (+ (mod (System/currentTimeMillis) (* 365 24 60 60 1000))
                       (rand-int Integer/MAX_VALUE)))
