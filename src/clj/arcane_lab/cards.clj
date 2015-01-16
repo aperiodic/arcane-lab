@@ -12,14 +12,36 @@
 (def rare-or-mythic #{:rare :mythic-rare})
 (def rare-weights {:rare 8, :mythic-rare 1})
 
+(def basic-names #{"Plains" "Island" "Swamp" "Mountain" "Forest"})
+
+(def refuge-names #{"Bloodfell Caves"
+                    "Blossoming Sands"
+                    "Dismal Backwater"
+                    "Jungle Hollow"
+                    "Rugged Highlands"
+                    "Scoured Barrens"
+                    "Swiftwater Cliffs"
+                    "Thornwood Falls"
+                    "Tranquil Cove"
+                    "Wind-Scarred Crag"})
+
+(def ally-fetch-names #{"Bloodstained Mire"
+                        "Flooded Strand"
+                        "Polluted Delta"
+                        "Windswept Heath"
+                        "Wooded Foothills"})
+
 ;;
-;; Load Cards
+;; Card & Set Processing
 ;;
 
-(def all-sets
-  (-> (io/resource "cards-by-set.json")
-    slurp
-    (json/decode true)))
+(def special-set-processor
+  {:FRF (fn [frf]
+          ;; Fate Reforged contains the refuges also printed in Khans, but they
+          ;; should only show up in the land slot, never in the comons.
+          (let [remove-refuges (partial remove #(contains? refuge-names (:name %)))]
+            (-> frf
+              (update-in [:cards :common] remove-refuges))))})
 
 (defn process-card
   "Pre-process a card to:
@@ -30,44 +52,80 @@
     (update-in [:colors] (partial mapv words->key))
     (update-in [:rarity] words->key)))
 
-(defn process-set
+(defn process-booster-set
   "Pre-process a set to:
-    1 - process each card with process-card (defined above)
-    2 - group cards by rarity
-    3 - change string values in booster specs to keywords"
+    1 - group cards by rarity
+    2 - change string values in booster specs to keywords"
   [set]
   (let [keywordize-string (fn [x]
                             (if (string? x)
                               (words->key x)
-                              x))]
+                              x))
+        code (-> set :code keyword)
+        special-processor (special-set-processor code identity)]
     (-> set
-      (update-in [:cards] (partial map process-card))
       (update-in [:cards] #(group-by :rarity %))
-      (update-in [:booster] (partial postwalk keywordize-string)))))
+      (update-in [:booster] (partial postwalk keywordize-string))
+      special-processor)))
+
+;;
+;; Load & Process Sets
+;;
+
+(def all-sets
+  (let [raw-sets (-> (io/resource "cards-by-set.json")
+                   slurp
+                   (json/decode true))]
+    (into {} (for [[code set] raw-sets]
+               [code (update-in set [:cards] (partial map process-card))]))))
 
 (def booster-sets
   (into {} (for [[code set] all-sets :when (contains? set :booster)]
-             [code (process-set set)])))
+             [code (process-booster-set set)])))
 
-(def basic-lands
-  (->> (get booster-sets :CHK)
-    :cards
-    :basic-land))
+;;
+;; Special Case Samplers
+;;
 
 (def special-land-sampler
-  {})
+  {:FRF
+   ;; Fate Reforged may contain a basic land, a refuge, or a Khans of Tarkir
+   ;; fetchland in its land slot. The specific numbers are just guesses as to
+   ;; how many of each kind are actually printed on the land sheet.
+   (let [frf-cards (->> (get-in booster-sets [:FRF :cards])
+                     vals
+                     (apply concat))
+         ktk-fetches (filter #(contains? ally-fetch-names (:name %))
+                             (get-in booster-sets [:KTK :cards :rare]))
+         ktk-basics (filter #(contains? basic-names (:name %))
+                            (get-in booster-sets [:KTK :cards :basic-land]))
+         frf-refuges (filter #(contains? refuge-names (:name %))
+                             (get-in all-sets [:FRF :cards]))
+         sheet-cards (concat ktk-fetches ktk-basics frf-refuges)
+         sheet (concat (take 60 (cycle refuge-names))
+                       (take 55 (cycle basic-names))
+                       (take 5 (cycle ally-fetch-names)))]
+     (fn [seed]
+       (let [sampled-name (->> (sample sheet seed) (drop 55) first)]
+         (-> (filter #(= (:name %) sampled-name) sheet-cards)
+           first))))})
 
 ;;
 ;; Booster Sampling
 ;;
+
+(def basic-land-cards
+  (->> (get booster-sets :CHK)
+    :cards
+    :basic-land))
 
 (defn sample-cards-by-rarity
   [set rarity amount seed]
   (let [set-code (keyword (:code set))]
     (if (= rarity :land)
       (if-let [sampler (special-land-sampler set-code)]
-        (->> (sampler seed) (take amount))
-        (->> (sample basic-lands seed) (take amount)))
+        [(sampler seed)]
+        (->> (sample basic-land-cards seed) (take amount)))
       (let [rarity (if (and (vector? rarity)
                             (= (clojure.core/set rarity) rare-or-mythic))
                      (-> (bigml.sampling.simple/sample
