@@ -688,12 +688,13 @@
                         state)
         names-for-cards (into (sorted-map) (for [[y row] (:piles state)]
                                              [y (into (sorted-map) (for [[x pile] row]
-                                                                     [x (map :name (:cards pile))]))]))]
+                                                                     [x (map :name (:cards pile))]))]))
+        no-piles (dissoc dragged-ids :piles)]
     (dom/div #js {:id "hud", :style #js {:position "relative"}}
              (dom/pre nil
                       (dom/b nil
                              (.stringify js/JSON
-                               (clj->js (assoc dragged-ids :piles names-for-cards)) nil 2))))))
+                               (clj->js no-piles) nil 2))))))
 
 (defn render-footer
   [state]
