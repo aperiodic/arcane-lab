@@ -1,5 +1,5 @@
 body {
-  background: rgb(17, 15, 12);
+  background: #19150D;
   font-family: "Open Sans", "Helvetica Neue", "Helvetica", "Lucida Grande", Arial, sans-serif;
   font-size: 18px;
 }
@@ -30,9 +30,9 @@ body {
   position: absolute;
   top: 2.5em;
   width: 50em;
-  z-index: 5;
+  z-index: 10;
 
-  color: rgb(17, 15, 12);
+  color: #19150D;
   background: rgba(234, 241, 251, 0.93);
   padding: 0 1em;
   border-radius: 0 1.5em 1.5em;
@@ -46,6 +46,20 @@ body {
 
 #selection, .selected {
   outline: 3px solid #39C527;
+}
+
+.badge {
+  width: 2em;
+
+  background: rgba(234, 241, 251, 0.65);
+  background-clip: border-box;
+  border-radius: 1em;
+
+  color: #19150D;
+  font-weight: bold;
+  font-size: 2em;
+  text-align: center;
+  z-index: 5;
 }
 
 .ghost {

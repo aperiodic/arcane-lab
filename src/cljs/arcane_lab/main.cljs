@@ -24,6 +24,8 @@
 (def card-width 222)
 (def card-height 319)
 
+(def em 18)
+
 (def half-card-width (int (/ card-width 2)))
 (def half-card-height (int (/ card-height 2)))
 
@@ -638,17 +640,32 @@
 ;;
 
 (defn render-selection
-  [selection]
-  (if selection
-    (let [[left right top bottom] (selection-edges selection)]
-      (dom/div #js {:id "selection"
-                    :className "box"
-                    :style #js {:position "absolute"
-                                :top top
-                                :left left
-                                :width (- right left)
-                                :height (- bottom top)}}
-               nil))))
+  [state]
+  (if-let [selection (:selection state)]
+    (let [{:keys [piles-after-selection]} state
+          selected-count (->> piles-after-selection
+                           (mapcat :cards)
+                           (filter :selected?)
+                           count)
+          [ox oy] (:stop selection)
+          [left right top bottom] (selection-edges selection)]
+
+      (dom/div nil
+               (dom/div #js {:id "selection"
+                             :className "box"
+                             :style #js {:position "absolute"
+                                         :top top
+                                         :left left
+                                         :width (- right left)
+                                         :height (- bottom top)}})
+
+               (if (pos? selected-count)
+                 (dom/div #js {:id "counter"
+                               :className "badge"
+                               :style #js {:position "absolute"
+                                           :top (- oy (* 1.25 em))
+                                           :left (- ox (* 4 em))}}
+                          (pr-str selected-count)))))))
 
 (defn render-card
   [card]
@@ -716,11 +733,13 @@
 (defn render-state
   [state]
   (let [{selection :selection} state
-        piles (mapcat vals (-> state :piles vals))]
+        piles (->> (-> state :piles vals)
+                (mapcat vals)
+                (map (partial pile-after-selection selection)))]
     (dom/div #js {:id "dom-root"}
              (apply dom/div {:id "piles"} (map #(render-pile % selection) piles))
              (render-drag (:drag state) (:piles state))
-             (render-selection selection)
+             (render-selection (assoc state :piles-after-selection piles))
              (render-footer state))))
 
 ;;
