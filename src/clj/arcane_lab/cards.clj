@@ -89,25 +89,19 @@
 
 (def special-land-sampler
   {:FRF
-   ;; Fate Reforged may contain a basic land, a refuge, or a Khans of Tarkir
-   ;; fetchland in its land slot. The specific numbers are just guesses as to
-   ;; how many of each kind are actually printed on the land sheet.
-   (let [frf-cards (->> (get-in booster-sets [:FRF :cards])
-                     vals
-                     (apply concat))
-         ktk-fetches (filter #(contains? ally-fetch-names (:name %))
+   ;; Fate Reforged may contain a refuge or a Khans of Tarkir fetchland in its
+   ;; land slot. The specific numbers are just guesses as to how many of each
+   ;; kind are actually printed on the land sheet.
+   (let [ktk-fetches (filter #(contains? ally-fetch-names (:name %))
                              (get-in booster-sets [:KTK :cards :rare]))
-         ktk-basics (filter #(contains? basic-names (:name %))
-                            (get-in booster-sets [:KTK :cards :basic-land]))
          frf-refuges (filter #(contains? refuge-names (:name %))
                              (get-in all-sets [:FRF :cards]))
-         sheet-cards (concat ktk-fetches ktk-basics frf-refuges)
-         sheet (concat (take 60 (cycle refuge-names))
-                       (take 55 (cycle basic-names))
-                       (take 5 (cycle ally-fetch-names)))]
+         land-cards (concat ktk-fetches frf-refuges)
+         land-sheet (concat (take 105 (cycle refuge-names))
+                            (take 5 (cycle ally-fetch-names)))]
      (fn [seed]
-       (let [sampled-name (->> (sample sheet seed) (drop 55) first)]
-         (-> (filter #(= (:name %) sampled-name) sheet-cards)
+       (let [sampled-name (->> (sample land-sheet seed) (drop 55) first)]
+         (-> (filter #(= (:name %) sampled-name) land-cards)
            first))))})
 
 ;;
