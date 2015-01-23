@@ -12,7 +12,7 @@
             [ring.util.response :as resp]))
 
 (defroutes routes
-  (GET "/" [] (resp/redirect "/4FRF2KTK"))
+  (GET "/" [] (resp/redirect "/3FRF3KTK"))
 
   (GET "/:pack-spec" [pack-spec]
        (let [seed (rand-seed)]
