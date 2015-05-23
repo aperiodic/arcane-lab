@@ -9,8 +9,12 @@
 ;; Definitions
 ;;
 
-(def rare-or-mythic #{:rare :mythic-rare})
-(def rare-weights {:rare 8, :mythic-rare 1})
+(def rare-slot #{:rare :mythic-rare})
+(def foil-slot #{:foil-common :foil-uncommon :foil-rare :foil-mythic-rare})
+
+(def variable-slot-weights
+  {rare-slot {:rare 7 :mythic-rare 1}
+   foil-slot {:common 10, :uncommon 3, :rare 1, :mythic-rare 0.125}})
 
 (def basic-names #{"Plains" "Island" "Swamp" "Mountain" "Forest"})
 
@@ -136,21 +140,21 @@
     :cards
     :basic-land))
 
-(defn sample-cards-by-rarity
-  [set rarity amount seed]
-  (let [set-code (keyword (:code set))]
-    (if (= rarity :land)
-      (if-let [sampler (special-land-sampler set-code)]
+(defn sample-booster-slots
+  [magic-set slot amount seed]
+  (let [magic-set-code (keyword (:code magic-set))]
+    (if (= slot :land)
+      (if-let [sampler (special-land-sampler magic-set-code)]
         [(sampler seed)]
         (->> (sample basic-land-cards seed) (take amount)))
-      (let [rarity (if (and (vector? rarity)
-                            (= (clojure.core/set rarity) rare-or-mythic))
-                     (-> (bigml.sampling.simple/sample
-                            rare-or-mythic
-                            :seed seed :replace true :weigh rare-weights :generator :twister)
-                       (nth 10))
-                     rarity)
-            cards (rarity (:cards set))]
+      (let [rarity (if-not (coll? slot)
+                     slot
+                     (let [weights (variable-slot-weights (set slot))]
+                       (-> (bigml.sampling.simple/sample
+                             (keys weights)
+                             :seed seed :replace true :weigh weights :generator :twister)
+                         (nth 10))))
+            cards (rarity (:cards magic-set))]
         (->> (sample cards seed)
           (drop (-> (- (count cards) amount) (/ 2)))
           (take amount))))))
@@ -161,9 +165,9 @@
    (if-let [{:keys [cards] :as set} (get booster-sets set-code)]
      (let [booster-spec (remove #{"marketing"} (:booster set))]
        (mapcat (fn [rarity-section]
-                 (let [rarity (first rarity-section)
+                 (let [slot (first rarity-section)
                        amount (count rarity-section)]
-                   (sample-cards-by-rarity set rarity amount seed)))
+                   (sample-booster-slots set slot amount seed)))
                (partition-by identity booster-spec))))))
 
 (defn pool
