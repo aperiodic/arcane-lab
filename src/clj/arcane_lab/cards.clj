@@ -84,6 +84,27 @@
              [code (process-booster-set set)])))
 
 ;;
+;; Card Search
+;;
+
+
+(defn printing-in-set
+  [nombre magic-set]
+  (let [cards (:cards magic-set)
+        cardseq (cond-> cards
+                  (map? cards)
+                  (->>
+                    vals
+                    (mapcat identity)))]
+    (-> (filter #(= (:name %) nombre) cardseq)
+      first)))
+
+(defn printings
+  [nombre]
+  (->> (map (partial printing-in-set nombre) (vals all-sets))
+    (keep identity)))
+
+;;
 ;; Special Case Samplers
 ;;
 
