@@ -96,7 +96,9 @@
                   (->>
                     vals
                     (mapcat identity)))]
-    (-> (filter #(= (:name %) nombre) cardseq)
+    (->> cardseq
+      (filter #(= (:name %) nombre))
+      (map #(assoc % :set (:code magic-set)))
       first)))
 
 (defn printings
