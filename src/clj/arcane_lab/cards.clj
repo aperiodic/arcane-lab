@@ -2,6 +2,7 @@
   (:require [arcane-lab.utils :refer [rand-seed sample words->key]]
             [bigml.sampling.simple]
             [clojure.java.io :as io]
+            [clojure.string :as str]
             [clojure.walk :refer [postwalk]]
             [cheshire.core :as json]))
 
@@ -91,17 +92,17 @@
 ;; Card Search
 ;;
 
-
 (defn printing-in-set
   [nombre magic-set]
-  (let [cards (:cards magic-set)
+  (let [canonical-nombre (str/lower-case nombre)
+        cards (:cards magic-set)
         cardseq (cond-> cards
                   (map? cards)
                   (->>
                     vals
                     (mapcat identity)))]
     (->> cardseq
-      (filter #(= (:name %) nombre))
+      (filter #(= (-> % :name str/lower-case) canonical-nombre))
       (map #(assoc % :set (:code magic-set)))
       first)))
 
