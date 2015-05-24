@@ -11,6 +11,12 @@
             [ring.middleware.resource :refer [wrap-resource]]
             [ring.util.response :as resp]))
 
+(defn cached-html-resp
+  [resp req]
+  (-> resp
+    (not-modified-response req)
+    (assoc-in [:headers "Content-Type"] "text/html")))
+
 (defroutes routes
   (GET "/" [] (resp/redirect "/6MM2"))
 
@@ -19,9 +25,7 @@
          (resp/redirect (str "/" pack-spec "/" seed))))
 
   (GET "/:pack-spec/:seed" req
-       (-> (resp/resource-response "/index.html")
-         (not-modified-response req)
-         (assoc-in [:headers "Content-Type"] "text/html")))
+       (cached-html-resp (resp/resource-response "/index.html") req))
 
   (context "/api" [] api/routes)
 
