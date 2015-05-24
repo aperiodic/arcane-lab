@@ -154,7 +154,7 @@
                              (keys weights)
                              :seed seed :replace true :weigh weights :generator :twister)
                          (nth 10))))
-            cards (rarity (:cards magic-set))]
+            cards (get (:cards magic-set) rarity)]
         (->> (sample cards seed)
           (drop (-> (- (count cards) amount) (/ 2)))
           (take amount))))))
