@@ -1,19 +1,22 @@
 (ns arcane-lab.import
   (:require [arcane-lab.cards :as cards]))
 
-(def spec-rgx #"(\d+)\S*\s+(.*)" )
+(def comment-rgx #"^(#|--).*")
+(def spec-rgx #"(\d+)\S*\s+(.*)")
 
 (defn spec->cards
   [spec]
-  (if-not (re-matches spec-rgx spec)
-    {:error :spec, :value spec, :spec spec}
-    (let [[_ amount-str nombre] (re-find spec-rgx spec)
-          amount (try (Integer/parseInt amount-str) (catch NumberFormatException _ nil))
-          card (first (cards/printings nombre))]
-      (cond
-        (nil? amount) {:error :amount, :value amount-str, :spec spec}
-        (nil? card) {:error :cardname, :value nombre, :spec spec}
-        :else (repeat amount card)))))
+  (cond
+    (re-matches comment-rgx spec) []
+    (not (re-matches spec-rgx spec)) {:error :spec, :value spec, :spec spec}
+    :else (let [[_ amount-str nombre] (re-find spec-rgx spec)
+                amount (try (Integer/parseInt amount-str)
+                         (catch NumberFormatException _ nil))
+                card (first (cards/printings nombre))]
+            (cond
+              (nil? amount) {:error :amount, :value amount-str, :spec spec}
+              (nil? card) {:error :cardname, :value nombre, :spec spec}
+              :else (repeat amount card)))))
 
 (defn spec-error?
   [x]
