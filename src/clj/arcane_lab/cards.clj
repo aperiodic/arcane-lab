@@ -81,7 +81,8 @@
   (let [raw-sets (-> (io/resource "cards-by-set.json")
                    slurp
                    (json/decode true))]
-    (into {} (for [[code set] raw-sets]
+    (into {} (for [[code set] raw-sets
+                   :when (not= (:type set) "promo")]
                [code (update-in set [:cards] (partial map process-card))]))))
 
 (def booster-sets
