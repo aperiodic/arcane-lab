@@ -1,6 +1,7 @@
 (ns arcane-lab.utils
   (:require [bigml.sampling.simple]
-            [clojure.string :as str]))
+            [clojure.string :as str])
+  (:import java.security.MessageDigest))
 
 (defn str->long
   [x]
@@ -15,6 +16,12 @@
     str/lower-case
     (str/replace " " "-")
     keyword))
+
+(defn sha1-str
+  [thing]
+  (let [md (MessageDigest/getInstance "SHA1")
+        sha1-bytes (.digest md (.getBytes (str thing)))]
+    (format "%x" (BigInteger. sha1-bytes))))
 
 (defn rand-seed [] (+ (mod (System/currentTimeMillis) (* 365 24 60 60 1000))
                       (rand-int Integer/MAX_VALUE)))
