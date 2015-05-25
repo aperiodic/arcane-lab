@@ -9,6 +9,10 @@ body {
   left: 12px;
 }
 
+h1, h2, h3, h4 {
+  color: rgb(234, 241, 251);
+}
+
 .button > a {
   color: rgb(234, 241, 251);
   font-weight: bold;
@@ -18,12 +22,21 @@ body {
   margin-right: 0.5em;
 }
 
+.error {
+  font-weight: bold;
+  color: #B73C21;
+}
+
 #help-button {
   margin-right: 10.5em;
 }
 
+#import-button {
+  margin-left: 7.2em;
+}
+
 #new-pool-button {
-  margin-left: 21em;
+  margin-left: 7em;
 }
 
 #meta {
@@ -95,6 +108,10 @@ body {
   font-weight: bold;
   text-decoration: none;
   color: rgb(134, 115, 86);
+}
+
+#wrapper {
+  margin-left: 1em;
 }
 
 /* Weird Settings */
