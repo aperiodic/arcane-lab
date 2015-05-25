@@ -373,7 +373,7 @@
   [pack-spec seed]
   (str pack-spec "|" seed))
 
-(defn pack-spec-and-seed
+(defn path-components
   [page-path]
   (-> page-path
     (str/replace #"^/" "")
@@ -382,7 +382,7 @@
 (defn save-state!
   [state]
   (let [page-path (-> js/document .-location .-pathname)
-        [ps seed] (pack-spec-and-seed page-path)
+        [ps seed] (path-components page-path)
         pool-key (state-key ps seed)
         ts (-> (js/Date.) .getTime (/ 1000) int str)
         clean-state (-> state
@@ -820,13 +820,21 @@
 (defn get-state-and-start-app!
   []
   (let [page-path (-> js/document .-location .-pathname)
-        [pack-spec seed] (pack-spec-and-seed page-path)]
-    (if-let [saved-state (load-state pack-spec seed)]
-      (start-app-from-state! saved-state)
-      (async-http/GET (str "/api/pool/" (or pack-spec default-pack-spec) "/" seed)
-                      {:format :edn
-                       :handler start-app-from-api-cards!
-                       :error-handler api-error}))))
+        components (path-components page-path)]
+    (if (= (first components) "decks")
+      (let [[_ deck-hash] components]
+        (async-http/GET (str "/api/decks/" deck-hash)
+                        {:format :edn
+                         :handler start-app-from-api-cards!
+                         :error-handler api-error}))
+      ;; otherwise, if we're not loading a deck, we're in the sealed section
+      (let [[pack-spec seed] components]
+        (if-let [saved-state (load-state pack-spec seed)]
+          (start-app-from-state! saved-state)
+          (async-http/GET (str "/api/pool/" (or pack-spec default-pack-spec) "/" seed)
+                          {:format :edn
+                           :handler start-app-from-api-cards!
+                           :error-handler api-error}))))))
 
 (get-state-and-start-app!)
 
