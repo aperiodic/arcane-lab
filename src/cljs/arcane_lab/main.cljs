@@ -743,6 +743,18 @@
              (render-footer state))))
 
 ;;
+;; Interface Hackery
+;;
+;; TODO: render page server-side so this doesn't have to be done here
+;;
+
+(defn transform-to-deck-ui!
+  []
+  (let [button (.getElementById js/document "new-pool-button")]
+    (set! (.-href button) "/")
+    (set! (.-innerText button) "Random Pool")))
+
+;;
 ;; App Setup
 ;;
 
@@ -823,6 +835,7 @@
         components (path-components page-path)]
     (if (= (first components) "decks")
       (let [[_ deck-hash] components]
+        (transform-to-deck-ui!)
         (async-http/GET (str "/api/decks/" deck-hash)
                         {:format :edn
                          :handler start-app-from-api-cards!
