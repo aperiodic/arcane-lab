@@ -112,6 +112,15 @@
   (->> (map (partial printing-in-set nombre) (vals all-sets))
     (keep identity)))
 
+(defn booster-printings
+  [nombre]
+  (->> (map (partial printing-in-set nombre) (vals booster-sets))
+    (keep identity)))
+
+(defn most-recent-printing
+  [printings]
+  (last (sort-by :multiverseid printings)))
+
 ;;
 ;; Special Case Samplers
 ;;
