@@ -1,8 +1,9 @@
 (ns arcane-lab.api
-  (:require [arcane-lab.cards :as cards]
+  (:require [arcane-lab.bucket :as bucket]
+            [arcane-lab.cards :as cards]
             [arcane-lab.utils :refer [rand-seed str->long]]
             [clojure.string :as str]
-            [compojure.core :refer [defroutes GET]]
+            [compojure.core :refer [defroutes routes GET POST]]
             [compojure.route :as route]
             [ring.middleware.defaults :refer [api-defaults wrap-defaults]]
             [ring.util.response :as resp]))
@@ -59,7 +60,7 @@
       :headers headers
       :body (pr-str thing)})))
 
-(defroutes routes
+(defroutes booster-routes
   (GET "/booster/:set-code" [set-code]
        (if-let [booster (cards/booster (-> set-code str/upper-case keyword))]
          (edn-resp booster)
@@ -72,25 +73,32 @@
          (resp/redirect (str "/" pack-spec "/" seed))))
 
   (GET "/pool/:pack-spec/:seed" [pack-spec seed]
-       (let [set-codes (pack-spec->codes pack-spec)
-             booster-count (count set-codes)]
-         (cond
-           (some nil? set-codes)
-           (let [msg (str "Could not recognize these set codes: "
-                          (str/join ", " (unrecognized-sets pack-spec)) ".")]
-             (edn-resp {:msg msg, :kind "unrecognized-set"} 400))
+       (edn-resp (let [set-codes (pack-spec->codes pack-spec)
+                       booster-count (count set-codes)]
+                   (cond
+                     (some nil? set-codes)
+                     (let [msg (str "Could not recognize these set codes: "
+                                    (str/join ", " (unrecognized-sets pack-spec)) ".")]
+                       {:msg msg, :kind "unrecognized-set"} 400)
 
-           (not= booster-count 6)
-           (let [msg (str "A sealed pool requires exactly 6 booster packs, but"
-                          " you asked for " booster-count ".")]
-             (edn-resp {:msg msg, :kind "bad-booster-count"} 400))
+                     (not= booster-count 6)
+                     (let [msg (str "A sealed pool requires exactly 6 booster packs, but"
+                                    " you asked for " booster-count ".")]
+                       {:msg msg, :kind "bad-booster-count"} 400)
 
-           :otherwise (-> (map full-card->client-card
-                               (cards/pool set-codes (str->long seed)))
-                        edn-resp))))
+                     :otherwise
+                     (->> (cards/pool set-codes (str->long seed))
+                       (map full-card->client-card)))))))
 
-  (route/not-found (pr-str {:msg "404 Not Found", :kind "not-found"})))
+(defn decks-routes
+  [decks-bucket]
+  (GET "/decks/:deck-hash" [deck-hash]
+       (if-let [card-names (bucket/bget decks-bucket deck-hash)]
+         (edn-resp (->> card-names
+                     (map (comp cards/most-recent-printing cards/printings))
+                     (map full-card->client-card)))
+         {:status 404 :body "404: Deck not Found"})))
 
-(def handler
-  (-> routes
+(def booster-handler
+  (-> booster-routes
     (wrap-defaults api-defaults)))
