@@ -2,6 +2,7 @@
   (:require [arcane-lab.api :as api]
             [arcane-lab.bucket :as bucket]
             [arcane-lab.bucket.atom :as atom-bucket]
+            [arcane-lab.bucket.file :as file-bucket]
             [arcane-lab.cards :as cards]
             [arcane-lab.import :as import]
             [arcane-lab.pages.import :as import-page]
@@ -69,7 +70,7 @@
      (route/not-found "You are lost in the Maze of Ith. Go back!"))))
 
 (defonce handler
-  (-> (site-routes)
+  (-> (site-routes (file-bucket/init "/usr/share/arcane-lab"))
     (wrap-defaults (assoc-in site-defaults [:security :anti-forgery] false))
     (wrap-resource "")
     (wrap-content-type)
