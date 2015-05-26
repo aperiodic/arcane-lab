@@ -19,6 +19,13 @@
       [:div#wrapper
        [:form {:action "import", :method "POST"}
         [:h2 "Cards"]
+        [:p
+         (str "Copy and paste a decklist into the text box, then hit the \"Import\" button at"
+              " the bottom.")
+         [:br]
+         (str "Each line must be a number followed by a card name, like '4 Stinkweed Imp'.")
+         [:br]
+         (str "Lines that start with '#' or '--' (two dashes) are ignored.")]
         (when (seq errors)
           [:p.error (str/join "<br>" (map import/spec-error-message errors))])
         [:p
