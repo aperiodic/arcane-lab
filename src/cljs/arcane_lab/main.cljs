@@ -87,6 +87,10 @@
   (let [basic-land-names #{"Plains" "Island" "Swamp" "Mountain" "Forest"}]
     (contains? basic-land-names (:name card))))
 
+(defn rare?
+  [card]
+  (contains? #{:rare :mythic-rare} (:rarity card)))
+
 ;;
 ;; Selection / Geometric Filtering
 ;;
@@ -772,7 +776,6 @@
   [api-cards]
   (let [cards (map api-card->client-card
                    (remove basic-land? api-cards))
-        rare? #(contains? #{:rare :mythic-rare} (:rarity %))
         [rares others] ((juxt (partial filter rare?)
                               (partial remove rare?))
                         cards)
