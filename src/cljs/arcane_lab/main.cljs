@@ -46,14 +46,6 @@
 ;; Card Creation & Sorting
 ;;
 
-(defn forest []
-  {:name "Forest"
-   :id (rand-uuid)
-   :img-src "forest.jpg"
-   :x half-gutter
-   :y half-gutter
-   :selected? false})
-
 (defn card-img-src
   [multiverseid]
   (str "http://api.mtgdb.info/content/hi_res_card_images/" multiverseid ".jpg"))
