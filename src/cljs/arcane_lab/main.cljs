@@ -131,7 +131,7 @@
         b (+ t (pile-height pile))]
     (within? l r t b x y)))
 
-(defn nth-column-x
+(defn x-of-column-indexed
   [n]
   (+ (* n pile-spacing) half-gutter))
 
@@ -780,7 +780,7 @@
                               (partial remove rare?))
                         cards)
         rare->pile (fn [i rare]
-                     (make-pile [rare] (nth-column-x i) half-gutter))
+                     (make-pile [rare] (x-of-column-indexed i) half-gutter))
         rare-piles (map-indexed rare->pile (sort-by wubrggc-sort rares))
         color->non-rares (group-by (fn [{:keys [colors]}]
                                      (cond
