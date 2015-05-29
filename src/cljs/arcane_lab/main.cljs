@@ -772,10 +772,9 @@
 
 (def blank-state {:piles (sorted-map)})
 
-(defn api-cards->init-state
-  [api-cards]
-  (let [cards (map api-card->client-card
-                   (remove basic-land? api-cards))
+(defn sealed-pool-piles
+  [cards]
+  (let [cards (remove basic-land? cards)
         [rares others] ((juxt (partial filter rare?)
                               (partial remove rare?))
                         cards)
@@ -805,9 +804,21 @@
                                     y (+ half-gutter card-height gutter)]
                                 (make-pile (sort-by :name col-cards) x y)))
         color-piles (map pile-for-color-at-x colors-and-xs)]
-        (reduce (fn [state pile] (add-pile state pile))
-                blank-state
-                (concat rare-piles color-piles))))
+    (concat rare-piles color-piles)))
+
+(defn deck-piles
+  [cards]
+  (map-indexed (fn [i [_ cmc-cards]]
+                 (make-pile (sort-by :name cmc-cards) (x-of-column-indexed i) half-gutter))
+               (sort-by key (group-by :cmc cards))))
+
+(defn api-cards->init-state
+  [api-cards]
+  (let [cards (map api-card->client-card api-cards)
+        piles (if (> (count cards) 76)
+                (sealed-pool-piles cards)
+                (deck-piles cards))]
+        (reduce (fn [state pile] (add-pile state pile)) blank-state piles)))
 
 (defn start-app-from-api-cards!
   [api-cards]
