@@ -98,19 +98,20 @@
 ;; Card Search
 ;;
 
-(defn printing-in-set
+(defn printings-in-set
   [nombre magic-set]
   (let [canonical-nombre (str/lower-case nombre)
         cards (:cards magic-set)
-        cardseq (cond-> cards
-                  (map? cards)
-                  (->>
-                    vals
-                    (mapcat identity)))]
+        cardseq (if (map? cards)
+                  (reduce concat (vals cards))
+                  cards)]
     (->> cardseq
       (filter #(= (-> % :name str/lower-case) canonical-nombre))
-      (map #(assoc % :set (:code magic-set)))
-      first)))
+      (map #(assoc % :set (:code magic-set))))))
+
+(defn printing-in-set
+  [nombre magic-set]
+  (first (printings-in-set nombre magic-set)))
 
 (defn printings
   [nombre]
