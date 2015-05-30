@@ -77,12 +77,17 @@
 ;; Load & Process Sets
 ;;
 
+(def ignored-sets
+  #{"EVG" "DD2" "DD3" "DDC" "DDD" "DDE" "DDF" "DDG" "DDH" "DDI" "DDJ" "DDK" "DDL" "DDM" "DDN"
+    "DDO" "TPR" "MED" "ME2" "ME3" "ME4" "VMA" "MD1" "H09" "PD2" "PD3" "DKM" "DPA" "ARC"})
+
 (def all-sets
   (let [raw-sets (-> (io/resource "cards-by-set.json")
                    slurp
                    (json/decode true))]
     (into {} (for [[code set] raw-sets
-                   :when (not= (:type set) "promo")]
+                   :when (and (not= (:type set) "promo")
+                              (not (contains? ignored-sets (:code set))))]
                [code (update-in set [:cards] (partial map process-card))]))))
 
 (def booster-sets
