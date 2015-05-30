@@ -95,7 +95,7 @@
   (GET "/decks/:deck-hash" [deck-hash]
        (if-let [card-names (bucket/bget decks-bucket deck-hash)]
          (edn-resp (->> card-names
-                     (map (comp cards/most-recent-printing cards/printings))
+                     (map (comp first cards/printings))
                      (map full-card->client-card)))
          {:status 404 :body "404: Deck not Found"})))
 
