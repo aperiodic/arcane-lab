@@ -123,9 +123,29 @@
   (->> (map (partial printing-in-set nombre) (vals booster-sets))
     (keep identity)))
 
-(defn most-recent-printing
+(defn find-extremum-by
+  [relation attribute maps]
+  (reduce (fn [winner candidate]
+            (let [max-val (if winner (get winner attribute))
+                  cand-val (if candidate (get candidate attribute))]
+              (cond
+                (nil? max-val) candidate
+                (nil? cand-val) winner
+                (relation cand-val max-val) candidate
+                :else winner)))
+          nil
+          maps))
+
+(def find-max-by (partial find-extremum-by >))
+(def find-min-by (partial find-extremum-by <))
+
+(defn newest-printing
   [printings]
-  (last (sort-by :multiverseid printings)))
+  (find-max-by :multiverseid printings))
+
+(defn oldest-printing
+  [printings]
+  (find-min-by :multiverseid printings))
 
 ;;
 ;; Special Case Samplers
