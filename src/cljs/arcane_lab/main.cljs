@@ -48,7 +48,7 @@
 
 (defn card-img-src
   [multiverseid]
-  (str "http://api.mtgdb.info/content/hi_res_card_images/" multiverseid ".jpg"))
+  (str "/img/" multiverseid))
 
 (defn api-card->client-card
   [api-card]

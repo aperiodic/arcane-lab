@@ -4,6 +4,7 @@
             [arcane-lab.bucket.atom :as atom-bucket]
             [arcane-lab.bucket.file :as file-bucket]
             [arcane-lab.cards :as cards]
+            [arcane-lab.images :as images]
             [arcane-lab.import :as import]
             [arcane-lab.pages.import :as import-page]
             [arcane-lab.utils :refer [rand-seed sha1-str wrap-ignore-trailing-slash]]
@@ -28,6 +29,8 @@
   {:status 200
    :headers {"Content-Type" "text/html"}
    :body body})
+
+(defonce images-cache (atom {}))
 
 (defn site-routes
   ([] (site-routes (atom-bucket/init)))
@@ -56,16 +59,19 @@
                  (bucket/bset bucket code card-names)
                  (resp/redirect (str "/decks/" code))))))
 
+     (context "/api" []
+              api/booster-routes
+              (api/decks-routes bucket))
+
+     (context "/img" []
+              (images/image-routes images-cache))
+
      (GET "/:pack-spec" [pack-spec]
           (let [seed (rand-seed)]
             (resp/redirect (str "/" pack-spec "/" seed))))
 
      (GET "/:pack-spec/:seed" req
           (cached-html-resp (resp/resource-response "/index.html") req))
-
-     (context "/api" []
-              api/booster-routes
-              (api/decks-routes bucket))
 
      (route/not-found "You are lost in the Maze of Ith. Go back!"))))
 
