@@ -1,5 +1,7 @@
 (ns arcane-lab.utils
   (:require [bigml.sampling.simple]
+            [clj-time.core :as time]
+            [clj-time.format :as format-time]
             [clojure.string :as str])
   (:import java.security.MessageDigest))
 
@@ -34,6 +36,12 @@
                                  :weigh weights
                                  :seed seed
                                  :generator :twister)))
+
+(defn now-rfc822
+  []
+  (let [rfc-formatter (format-time/formatters :rfc822)]
+    (->> (time/now)
+    (format-time/unparse rfc-formatter))))
 
 (defn wrap-ignore-trailing-slash
   [handler]
