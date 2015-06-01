@@ -116,8 +116,19 @@
 
 (defn printings
   [nombre]
-  (->> (map (partial printing-in-set nombre) (vals all-sets))
-    (keep identity)))
+  (case nombre
+    "Plains" (->> (printings-in-set "Plains" (:ZEN booster-sets))
+               (filter #(= (:multiverseid %) 195179)))
+    "Island" (->> (printings-in-set "Island" (:ZEN booster-sets))
+               (filter #(= (:multiverseid %) 195170)))
+    "Swamp" (->> (printings-in-set "Swamp" (:ZEN booster-sets))
+              (filter #(= (:multiverseid %) 201978)))
+    "Mountain" (->> (printings-in-set "Mountain" (:ZEN booster-sets))
+                 (filter #(= (:multiverseid %) 201970)))
+    "Forest" (->> (printings-in-set "Forest" (:ZEN booster-sets))
+               (filter #(= (:multiverseid %) 195183)))
+    (->> (map (partial printing-in-set nombre) (vals all-sets))
+      (keep identity))))
 
 (defn booster-printings
   [nombre]
