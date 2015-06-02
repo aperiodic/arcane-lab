@@ -122,7 +122,7 @@
     "Island" (->> (printings-in-set "Island" (:ZEN booster-sets))
                (filter #(= (:multiverseid %) 195170)))
     "Swamp" (->> (printings-in-set "Swamp" (:ZEN booster-sets))
-              (filter #(= (:multiverseid %) 201978)))
+              (filter #(= (:multiverseid %) 201977)))
     "Mountain" (->> (printings-in-set "Mountain" (:ZEN booster-sets))
                  (filter #(= (:multiverseid %) 201970)))
     "Forest" (->> (printings-in-set "Forest" (:ZEN booster-sets))
