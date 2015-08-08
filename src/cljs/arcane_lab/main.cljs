@@ -723,7 +723,7 @@
                       " • Lab Maniac is in no way affiliated with Wizards of the Coast")
              (dom/div #js {:className "disclaimer"}
                       "Data from " (dom/a #js {:href "http://mtgjson.com"} "mtgjson.com")
-                      ", images from " (dom/a #js {:href "http://mtgimage.com"} "mtgimage.com")
+                      ", images from " (dom/a #js {:href "http://magiccards.info"} "magiccards.info & Gatherer")
                       " • Made by Dan Lidral-Porter"))))
 
 (defn render-state
