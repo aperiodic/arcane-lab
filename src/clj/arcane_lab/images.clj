@@ -5,13 +5,11 @@
             [puppetlabs.http.client.sync :as http]
             [ring.middleware.not-modified :refer [wrap-not-modified]]))
 
-(def sources [:mtgdb-hi :mtgdb-lo :gatherer])
+(def sources [:gatherer])
 (def startup-time (now-rfc822))
 
 (def source->url-fn
   (sorted-map-by #(< (.indexOf sources %1) (.indexOf sources %2))
-    :mtgdb-hi (fn [m-id] (str "http://api.mtgdb.info/content/hi_res_card_images/" m-id ".jpg"))
-    :mtgdb-lo (fn [m-id] (str "http://api.mtgdb.info/content/card_images/" m-id ".jpg"))
     :gatherer (fn [m-id] (str "http://gatherer.wizards.com/Handlers/Image.ashx?type=card&multiverseid="
                               m-id))))
 
@@ -22,7 +20,9 @@
   {:pre [(contains? source->url-fn source)]}
   (if (get-in req [:headers "if-modified-since"])
     {:status 304, :headers {"content-type" "text/html"}} ;; always 304 if they seem to have it
-    (http/get ((source->url-fn source) m-id))))
+    (try (http/get ((source->url-fn source) m-id))
+      (catch java.net.UnknownHostException _
+        {:status 404}))))
 
 (defn successful-gatherer-response?
   [resp]
