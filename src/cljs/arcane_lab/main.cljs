@@ -91,6 +91,35 @@
   [card]
   (contains? #{:rare :mythic-rare} (:rarity card)))
 
+(defn cost->colortype
+  "Return the color type found by looking at the mana cost only. If the cost
+  contains only one color, return that color as a keyword. If it contains
+  multiple colors, then return `:gold`. If the cost is coloress, return nil."
+  [mana-cost]
+  (if mana-cost
+    (let [w-cost? (re-find #"W" mana-cost)
+          u-cost? (re-find #"U" mana-cost)
+          b-cost? (re-find #"B" mana-cost)
+          r-cost? (re-find #"R" mana-cost)
+          g-cost? (re-find #"G" mana-cost)
+          gold-cost? (or (and w-cost? u-cost?)
+                         (and u-cost? b-cost?)
+                         (and b-cost? r-cost?)
+                         (and r-cost? g-cost?)
+                         (and g-cost? w-cost?)
+                         (and w-cost? b-cost?)
+                         (and u-cost? r-cost?)
+                         (and b-cost? g-cost?)
+                         (and r-cost? w-cost?)
+                         (and g-cost? u-cost?))]
+      (cond
+        gold-cost? :gold
+        w-cost? :white
+        u-cost? :blue
+        b-cost? :black
+        r-cost? :red
+        g-cost? :green))))
+
 ;;
 ;; Selection / Geometric Filtering
 ;;
@@ -781,11 +810,13 @@
         rare->pile (fn [i rare]
                      (make-pile [rare] (x-of-column-indexed i) half-gutter))
         rare-piles (map-indexed rare->pile (sort-by wubrggc-sort rares))
-        color->non-rares (group-by (fn [{:keys [colors]}]
-                                     (cond
-                                       (empty? colors) :colorless
-                                       (> (count colors) 1) :gold
-                                       :otherwise (first colors)))
+        color->non-rares (group-by (fn [{:keys [colors manaCost] :as card}]
+                                     (if-let [cost-color (cost->colortype manaCost)]
+                                       cost-color
+                                       (cond
+                                         (empty? colors) :colorless
+                                         (> (count colors) 1) :gold
+                                         :otherwise (first colors))))
                                    others)
         colors-and-xs (reduce (fn [cs-&-ps color]
                                 (let [last-x (-> cs-&-ps
