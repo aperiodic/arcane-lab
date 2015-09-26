@@ -53,14 +53,40 @@
             (-> frf
               (update-in [:cards :common] remove-refuges))))})
 
+(defn parse-collector-number
+  "Parse a collector number to an integer or float. Most parsed collector
+  numbers are integers, but the numbers of double-faced & split cards (which are
+  'Xa' and 'Xb' for the front & back sides or the first & second split cards)
+  get turned into X.0 and X.5. There's a special case for the Unhinged card
+  'Who/What/When/Where/Why', which gets numbers 120.0, 120.5, 120.6, 120.7, and
+  120.8 for each of the sub-cards in order."
+  [number-string]
+  (when number-string
+    (if-let [side (re-find #"a|b|c|d|e" number-string)]
+      (+ (Integer/parseInt (re-find #"^\d+" number-string))
+         (case side
+           "a" 0.0
+           "b" 0.5
+           "c" 0.6
+           "d" 0.7
+           "e" 0.8))
+      ;; else (regular collector number, possibly preceded by '★')
+      (if (re-find #"^★" number-string)
+        (recur (subs number-string 1))
+        (try (Integer/parseInt number-string)
+          (catch java.lang.NumberFormatException _
+            number-string))))))
+
 (defn process-card
   "Pre-process a card to:
     1 - keywordize colors
-    2 - keywordize rarity with words->key"
+    2 - keywordize rarity with words->key
+    3 - parse collector number as an integer"
   [card]
   (-> card
     (update-in [:colors] (partial mapv words->key))
-    (update-in [:rarity] words->key)))
+    (update-in [:rarity] words->key)
+    (update-in [:number] parse-collector-number)))
 
 (defn process-booster-set
   "Pre-process a set to:
