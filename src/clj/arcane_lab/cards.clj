@@ -45,13 +45,14 @@
     :DDH :DDI :DDJ :DDK :DDL :DDM :DDN :DDO :TPR :MED :ME2 :ME3 :ME4 :VMA :MD1
     :H09 :PD2 :PD3 :DKM :DPA :ARC :DRB :V09 :V10 :V11 :V12 :V13 :V14 :V15})
 
-(def special-set-processor
+(def special-booster-set-processor
+  "Post-processing for booster sets that is more than just removing extraneous
+  cards. Currently, this only encompasses removing the Khans refuges from Fate
+  Reforged's commons, since they only ever show up in the land slot."
   {:FRF (fn [frf]
           ;; Fate Reforged contains the refuges also printed in Khans, but they
           ;; should only show up in the land slot, never in the comons.
-          (let [remove-refuges (partial remove #(contains? refuge-names (:name %)))]
-            (-> frf
-              (update-in [:cards :common] remove-refuges))))})
+          (update-in frf [:cards :common] (partial remove #(contains? refuge-names (:name %)))))})
 
 (defn parse-collector-number
   "Parse a collector number to an integer or float. Most parsed collector
@@ -98,9 +99,9 @@
                               (words->key x)
                               x))
         code (-> set :code keyword)
-        special-processor (special-set-processor code identity)]
+        special-processor (special-booster-set-processor code identity)]
     (-> set
-      (update-in [:cards] #(group-by :rarity %))
+      (update-in [:cards] (partial group-by :rarity))
       (update-in [:booster] (partial postwalk keywordize-string))
       special-processor)))
 
