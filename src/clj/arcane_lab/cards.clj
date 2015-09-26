@@ -45,6 +45,16 @@
     :DDH :DDI :DDJ :DDK :DDL :DDM :DDN :DDO :TPR :MED :ME2 :ME3 :ME4 :VMA :MD1
     :H09 :PD2 :PD3 :DKM :DPA :ARC :DRB :V09 :V10 :V11 :V12 :V13 :V14 :V15})
 
+(def extraneous-card-predicate
+  "This is for sets that need to have some cards removed that are technically in
+  the set for some reason but do not appear in the set's booster packs. It's
+  a mapping between a (keyword) set code and a predicate function that detects
+  these extraneous cards."
+  {:8ED #(string? (:number %)) ;; Cards printed in intro decks but not in boosters for these two
+   :9ED #(string? (:number %)) ;; sets have collector numbers like "S1", which are left as strings
+                               ;; by the parse-collector-number function below.
+   :ORI #(> (:number %) 272)}) ;; Cards in gatherer but not printed in boosters have number > 272
+
 (def special-booster-set-processor
   "Post-processing for booster sets that is more than just removing extraneous
   cards. Currently, this only encompasses removing the Khans refuges from Fate
@@ -99,8 +109,10 @@
                               (words->key x)
                               x))
         code (-> set :code keyword)
-        special-processor (special-booster-set-processor code identity)]
+        special-processor (special-booster-set-processor code identity)
+        extraneous-card? (extraneous-card-predicate code (constantly false))]
     (-> set
+      (update-in [:cards] (partial remove extraneous-card?))
       (update-in [:cards] (partial group-by :rarity))
       (update-in [:booster] (partial postwalk keywordize-string))
       special-processor)))
