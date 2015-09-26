@@ -40,6 +40,11 @@
 ;; Card & Set Processing
 ;;
 
+(def ignored-sets
+  #{:EVG :DD2 :DD3 :DD3_DVD :DD3_EVG :DD3_GVL :DD3_JVC :DDC :DDD :DDE :DDF :DDG
+    :DDH :DDI :DDJ :DDK :DDL :DDM :DDN :DDO :TPR :MED :ME2 :ME3 :ME4 :VMA :MD1
+    :H09 :PD2 :PD3 :DKM :DPA :ARC :DRB :V09 :V10 :V11 :V12 :V13 :V14 :V15})
+
 (def special-set-processor
   {:FRF (fn [frf]
           ;; Fate Reforged contains the refuges also printed in Khans, but they
@@ -77,18 +82,13 @@
 ;; Load & Process Sets
 ;;
 
-(def ignored-sets
-  #{"EVG" "DD2" "DD3" "DDC" "DDD" "DDE" "DDF" "DDG" "DDH" "DDI" "DDJ" "DDK" "DDL" "DDM" "DDN" "DDO"
-    "TPR" "MED" "ME2" "ME3" "ME4" "VMA" "MD1" "H09" "PD2" "PD3" "DKM" "DPA" "ARC" "DRB" "V09" "V10"
-    "V11" "V12" "V13" "V14" "V15"})
-
 (def all-sets
   (let [raw-sets (-> (io/resource "cards-by-set.json")
                    slurp
                    (json/decode true))]
     (into {} (for [[code set] raw-sets
                    :when (and (not= (:type set) "promo")
-                              (not (contains? ignored-sets (:code set))))]
+                              (not (contains? ignored-sets code)))]
                [code (update-in set [:cards] (partial map process-card))]))))
 
 (def booster-sets
