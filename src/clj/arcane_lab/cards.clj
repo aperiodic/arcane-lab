@@ -92,7 +92,8 @@
                [code (update-in set [:cards] (partial map process-card))]))))
 
 (def booster-sets
-  (into {} (for [[code set] all-sets :when (contains? set :booster)]
+  (into {} (for [[code set] all-sets
+                 :when (contains? set :booster)]
              [code (process-booster-set set)])))
 
 ;;
@@ -196,6 +197,7 @@
       (if-let [sampler (special-land-sampler magic-set-code)]
         [(sampler seed)]
         (->> (sample basic-land-cards seed) (take amount)))
+      ;; else (not a land slot, should be same for all sets)
       (let [rarity (if-not (coll? slot)
                      slot
                      (let [weights (variable-slot-weights (set slot))]
