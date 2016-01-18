@@ -1,6 +1,6 @@
 (ns arcane-lab.main
   (:require [ajax.core :as async-http]
-            [cljs-uuid-utils :refer [make-random-uuid]]
+            [cljs-uuid-utils.core :refer [make-random-uuid]]
             [cljs.core.async :as async]
             [cljs.reader :as reader]
             [clojure.string :as str]
@@ -632,7 +632,7 @@
 
 (defn state-signal
   [initial-state]
-  (let [app-mouse-position (sig/lift #(update-in % [1] - mouse-y-offset) mouse/position)
+  (let [app-mouse-position (sig/map #(update-in % [1] - mouse-y-offset) mouse/position)
         drag-coords (sig/keep-when mouse/down? [0 0] app-mouse-position)
         dragging? (let [true-on-dragmove (sig/sample-on drag-coords (sig/constant true))]
                     (->> (sig/merge (sig/keep-if not false mouse/down?) true-on-dragmove)
@@ -646,19 +646,20 @@
         undo-button-down (sig/input false :undo-button undo-channel)
         redo-button-down (sig/input false :redo-button redo-channel)
         actions (sig/merge
-                  (sig/lift start-drag-action click-down-coords)
-                  (sig/lift start-selection-if-not-dragging-action drag-start-coords)
-                  (sig/lift update-selection-or-drag-destination-action drag-coords)
-                  (sig/lift stop-selection-or-drag-action stop-drag)
-                  (sig/lift stop-selection-or-drag-action click-up)
-                  (sig/lift rewind-state-action (on-key-code-down u-key-code))
-                  (sig/lift rewind-state-action undo-button-down)
-                  (sig/lift skip-ahead-state-action (on-key-code-down r-key-code))
-                  (sig/lift skip-ahead-state-action redo-button-down)
+                  (sig/map start-drag-action click-down-coords)
+                  (sig/map start-selection-if-not-dragging-action drag-start-coords)
+                  (sig/map update-selection-or-drag-destination-action drag-coords)
+                  (sig/map stop-selection-or-drag-action stop-drag)
+                  (sig/map stop-selection-or-drag-action click-up)
+                  (sig/map rewind-state-action (on-key-code-down u-key-code))
+                  (sig/map rewind-state-action undo-button-down)
+                  (sig/map skip-ahead-state-action (on-key-code-down r-key-code))
+                  (sig/map skip-ahead-state-action redo-button-down)
                   (sig/constant identity))]
-    (sig/reducep (fn [state action] (action state))
-                 initial-state
-                 actions)))
+    (sig/drop-repeats
+      (sig/reductions (fn [state action] (action state))
+                      initial-state
+                      actions))))
 
 ;;
 ;; Rendering
