@@ -135,6 +135,11 @@
                  :when (contains? set :booster)]
              [code (process-booster-set set)])))
 
+(defn lands-in-boosters?
+  [set-code]
+  (let [booster-spec (get-in booster-sets [set-code :booster])]
+    (contains? (set booster-spec) :land)))
+
 ;;
 ;; Card Search
 ;;
@@ -219,6 +224,99 @@
        (let [sampled-name (->> (sample land-sheet seed) (drop 55) first)]
          (-> (filter #(= (:name %) sampled-name) land-cards)
            first))))})
+
+;;
+;; Print Runs
+;;
+
+(defn- cycles
+  [n coll]
+  (take (* n (count coll)) (cycle coll)))
+
+(defn rare-sheet
+  "Ordered 'sheet' of all the rares in the set with the given code, with the
+  proper proportion of normal rares & mythics if the set has both."
+  [set-code]
+  (let [rares (get-in booster-sets [set-code :cards :rare])
+        mythics (get-in booster-sets [set-code :cards :mythic-rare])]
+    (if (empty? mythics)
+      rares
+      (concat mythics (cycles 2 rares)))))
+
+(defn uncommons-sheet
+  [set-code]
+  (get-in booster-sets [set-code :cards :uncommon]))
+
+(defn commons-sheet
+  [set-code]
+  (get-in booster-sets [set-code :cards :common]))
+
+(defn lands-sheet
+  [set-code]
+  (let [default-basics (get-in booster-sets [:ODY :cards :basic-land])]
+    (condp = set-code
+      :FRF (let [ktk-fetches (filter #(contains? ally-fetch-names (:name %))
+                                     (get-in booster-sets [:KTK :cards :rare]))
+                 frf-refuges (filter #(contains? refuge-names (:name %))
+                                     (get-in all-sets [:FRF :cards]))]
+             (concat (take 105 (cycle frf-refuges))
+                     (take 5 (cycle ktk-fetches))))
+
+      :OGW default-basics ; wastes are basic but not on the land sheet
+
+      ;; normally just use basics printed in the set
+      (or (get-in booster-sets [set-code :cards :basic-land])
+          default-basics))))
+
+(defn print-run
+  [set-code]
+  (merge {:set-code set-code
+          :rares (rare-sheet set-code)
+          :uncommons (uncommons-sheet set-code)
+          :commons (commons-sheet set-code)}
+         (if (lands-in-boosters? set-code)
+           {:lands (lands-sheet set-code)})))
+
+(defn rares-empty?
+  [print-run]
+  (let [rare-count (count (:rares print-run))]
+    (< rare-count 1)))
+
+(defn uncommons-empty?
+  [print-run]
+  (let [uncommons-count (count (:uncommons print-run))]
+    (< uncommons-count 3)))
+
+(defn commons-empty?
+  [print-run]
+  (let [{:keys [commons set-code]} print-run]
+    (if (lands-in-boosters? set-code)
+      (< (count commons) 10)
+      (< (count commons) 11))))
+
+(defn lands-empty?
+  [print-run]
+  (let [{:keys [lands set-code]} print-run]
+    (if (lands-in-boosters? set-code)
+      (< (count lands) 1)
+      false)))
+
+(defn print-run-empty?
+  "Returns true if you can't build a booster pack using the given print run."
+  [print-run]
+  (or (rares-empty? print-run)
+      (uncommons-empty? print-run)
+      (commons-empty? print-run)
+      (lands-empty? print-run)))
+
+(defn replenish-print-run
+  [print-run]
+  (let [set-code (:set-code print-run)]
+    (cond-> print-run
+      (rares-empty? print-run) (update :rares concat (rare-sheet set-code))
+      (uncommons-empty? print-run) (update :uncommons concat (uncommons-sheet set-code))
+      (commons-empty? print-run) (update :commons concat (commons-sheet set-code))
+      (lands-empty? print-run) (update :lands concat (lands-sheet set-code)))))
 
 ;;
 ;; Booster Sampling
