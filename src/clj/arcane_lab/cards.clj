@@ -112,9 +112,10 @@
         special-processor (special-booster-set-processor code identity)
         extraneous-card? (extraneous-card-predicate code (constantly false))]
     (-> set
-      (update-in [:cards] (partial remove extraneous-card?))
-      (update-in [:cards] (partial group-by :rarity))
-      (update-in [:booster] (partial postwalk keywordize-string))
+      (update :cards (partial remove extraneous-card?))
+      (update :cards (partial group-by :rarity))
+      (update :booster (partial postwalk keywordize-string))
+      (update :booster (partial remove #{:marketing}))
       special-processor)))
 
 ;;
