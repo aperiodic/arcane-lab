@@ -1,5 +1,5 @@
 (ns arcane-lab.cards
-  (:require [arcane-lab.utils :refer [rand-seed sample words->key]]
+  (:require [arcane-lab.utils :refer [rand-seed sample seeded-rng words->key]]
             [bigml.sampling.simple]
             [clojure.java.io :as io]
             [clojure.string :as str]
@@ -282,13 +282,18 @@
           default-basics))))
 
 (defn print-run
-  [set-code]
-  (merge {:set-code set-code
-          :rares (rare-sheet set-code)
-          :uncommons (uncommons-sheet set-code)
-          :commons (commons-sheet set-code)}
-         (if (lands-in-boosters? set-code)
-           {:lands (lands-sheet set-code)})))
+  ([set-code] (print-run set-code (rand-seed)))
+  ([set-code seed]
+   (if-not (contains? booster-sets set-code)
+     (throw (IllegalArgumentException. (str set-code " is not a valid set code")))
+     (merge {:set-code set-code
+             :seed seed
+             :rares (sample (rare-sheet set-code) seed)
+             :uncommons (sample (uncommons-sheet set-code) seed)
+             :commons (sample (commons-sheet set-code) seed)
+             :boosters []}
+            (if (lands-in-boosters? set-code)
+              {:lands (lands-sheet set-code)})))))
 
 (defn rares-empty?
   [print-run]
@@ -324,11 +329,13 @@
 
 (defn replenish-print-run
   [print-run]
-  (let [set-code (:set-code print-run)]
-    (cond-> print-run
-      (rares-empty? print-run) (update :rares concat (rare-sheet set-code))
-      (uncommons-empty? print-run) (update :uncommons concat (uncommons-sheet set-code))
-      (commons-empty? print-run) (update :commons concat (commons-sheet set-code))
+  (let [{:keys [set-code seed]} print-run
+        seed' (.nextLong (seeded-rng seed))
+        shuffle #(sample % seed')]
+    (cond-> (assoc print-run :seed seed')
+      (rares-empty? print-run) (update :rares concat (shuffle (rare-sheet set-code)))
+      (uncommons-empty? print-run) (update :uncommons concat (shuffle (uncommons-sheet set-code)))
+      (commons-empty? print-run) (update :commons concat (shuffle (commons-sheet set-code)))
       (lands-empty? print-run) (update :lands concat (lands-sheet set-code)))))
 
 ;;
