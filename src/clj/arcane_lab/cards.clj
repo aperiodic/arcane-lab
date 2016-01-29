@@ -246,6 +246,18 @@
   [n coll]
   (take (* n (count coll)) (cycle coll)))
 
+(def slot->sheet
+  ;; Unhandled Sheets (non-exhaustive):
+  ;;   - ISD :double-faced, [:land :checklist]
+  ;;   - TSP :timeshifted-purple
+  ;;   - PLC :timeshifted-common, :timeshifted-uncommon, :timeshifted-rare
+  ;;   - FUT :timeshifted-common, :timeshifted-uncommon, :timeshifted-rare
+  {[:rare :mythic-rare] :rares
+   :rare :rares
+   :uncommon :uncommons
+   :common :commons
+   :land :lands})
+
 (defn rare-sheet
   "Ordered 'sheet' of all the rares in the set with the given code, with the
   proper proportion of normal rares & mythics if the set has both."
@@ -342,45 +354,55 @@
 ;; Booster Sampling
 ;;
 
-(def basic-land-cards
-  (->> (get booster-sets :CHK)
-    :cards
-    :basic-land))
-
-(defn sample-booster-slots
-  [magic-set slot amount seed]
-  (let [magic-set-code (keyword (:code magic-set))]
-    (if (= slot :land)
-      (if-let [sampler (special-land-sampler magic-set-code)]
-        [(sampler seed)]
-        (->> (sample basic-land-cards seed) (take amount)))
-      ;; else (not a land slot, should be same for all sets)
-      (let [rarity (if-not (coll? slot)
-                     slot
-                     (let [weights (variable-slot-weights (set slot))]
-                       (-> (bigml.sampling.simple/sample
-                             (keys weights)
-                             :seed seed :replace true :weigh weights :generator :twister)
-                         (nth 10))))
-            cards (get (:cards magic-set) rarity)]
-        (->> (sample cards seed)
-          (drop (-> (- (count cards) amount) (/ 2)))
-          (take amount))))))
+(defn print-booster
+  "Takes a print run and returns an updated version of the print run with an
+  additional booster pack in the :boosters field, and possibly with new sheets
+  in the card fields if they were necessary in order to print the pack"
+  [print-run]
+  (if (print-run-empty? print-run)
+    (recur (replenish-print-run print-run))
+    (let [{:keys [set-code boosters]} print-run
+          {:keys [booster] :as the-set} (booster-sets set-code)
+          booster-sheets (replace slot->sheet booster)
+          sheet->qty (frequencies booster-sheets)
+          !booster (atom [])
+          sheets' (into {} (for [[kind sheet] (select-keys print-run (vals slot->sheet))]
+                             (let [qty (sheet->qty kind 0)]
+                               (swap! !booster concat (take qty sheet))
+                               [kind (drop qty sheet)])))]
+      (-> (merge print-run sheets')
+        (update :boosters concat [@!booster])))))
 
 (defn booster
   ([set-code] (booster set-code (rand-seed)))
   ([set-code seed]
-   (if-let [{:keys [cards] :as set} (get booster-sets set-code)]
-     (let [booster-spec (remove #{"marketing"} (:booster set))]
-       (mapcat (fn [rarity-section]
-                 (let [slot (first rarity-section)
-                       amount (count rarity-section)]
-                   (sample-booster-slots set slot amount seed)))
-               (partition-by identity booster-spec))))))
+   (-> (print-run set-code seed)
+     print-booster
+     :boosters
+     first)))
+
+(defn print-boosters
+  [print-run quantity]
+  (nth (iterate print-booster print-run) quantity))
 
 (defn pool
   ([set-codes] (pool set-codes (rand-seed)))
   ([set-codes seed]
-   (let [gnr8r (java.util.Random. seed)]
-     (repeatedly 10 #(.nextLong gnr8r))
-     (mapcat booster set-codes (repeatedly #(.nextLong gnr8r))))))
+   (let [pack-count (frequencies set-codes)
+         rng (seeded-rng seed)]
+     (->> (reduce (fn [{:keys [current-print-run boosters]} set-code]
+                    (let [print-run' (print-booster (if (= (:set-code current-print-run) set-code)
+                                                      current-print-run
+                                                      (print-run set-code (.nextLong rng))))
+                          new-print-run-threshold (/ 1.0 (pack-count set-code))
+                          next-seed (.nextLong rng)]
+                      {:current-print-run (if (or (< (.nextDouble rng) new-print-run-threshold)
+                                                  (>= (count (:boosters print-run')) 3))
+                                            (print-run set-code next-seed)
+                                            print-run')
+                       :boosters (concat boosters [(last (:boosters print-run'))])}))
+                  {:current-print-run (print-run (first set-codes) (.nextLong rng))
+                   :boosters []}
+                  set-codes)
+       :boosters
+       (apply concat)))))

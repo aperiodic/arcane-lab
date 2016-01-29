@@ -62,11 +62,12 @@
 
 (defroutes booster-routes
   (GET "/booster/:set-code" [set-code]
-       (if-let [booster (cards/booster (-> set-code str/upper-case keyword))]
-         (edn-resp booster)
-         (edn-resp {:msg (str "Unknown set \"" set-code "\"")
-                     :kind "unknown-set"}
-                    404)))
+       (let [set-code (-> set-code str/upper-case keyword)]
+         (if (cards/booster-set-code? set-code)
+           (edn-resp (cards/booster set-code))
+           (edn-resp {:msg (str "Unknown set \"" set-code "\"")
+                      :kind "unknown-set"}
+                     404))))
 
   (GET "/pool/:pack-spec" [pack-spec]
        (let [seed (rand-seed)]
