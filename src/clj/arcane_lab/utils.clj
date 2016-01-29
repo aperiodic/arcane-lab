@@ -3,7 +3,8 @@
             [clj-time.core :as time]
             [clj-time.format :as format-time]
             [clojure.string :as str])
-  (:import java.security.MessageDigest))
+  (:import java.security.MessageDigest
+           java.util.Random))
 
 (defn str->long
   [x]
@@ -36,6 +37,13 @@
                                  :weigh weights
                                  :seed seed
                                  :generator :twister)))
+
+(defn seeded-rng
+  [seed]
+  (let [rng (Random. seed)]
+    ;; if this is not done the initial value is similar for all seeds
+    (dotimes [_ 1e2] (.nextLong rng))
+    rng))
 
 (defn now-rfc822
   []
