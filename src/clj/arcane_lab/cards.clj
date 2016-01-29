@@ -136,6 +136,18 @@
                  :when (contains? set :booster)]
              [code (process-booster-set set)])))
 
+;;
+;; Set Predicates
+;;
+
+(defn set-code?
+  [set-code]
+  (contains? all-sets set-code))
+
+(defn booster-set-code?
+  [set-code]
+  (contains? booster-sets set-code))
+
 (defn lands-in-boosters?
   [set-code]
   (let [booster-spec (get-in booster-sets [set-code :booster])]
