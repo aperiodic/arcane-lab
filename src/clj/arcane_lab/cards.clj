@@ -218,27 +218,6 @@
   (find-min-by :multiverseid printings))
 
 ;;
-;; Special Case Samplers
-;;
-
-(def special-land-sampler
-  {:FRF
-   ;; Fate Reforged may contain a refuge or a Khans of Tarkir fetchland in its
-   ;; land slot. The specific numbers are just guesses as to how many of each
-   ;; kind are actually printed on the land sheet.
-   (let [ktk-fetches (filter #(contains? ally-fetch-names (:name %))
-                             (get-in booster-sets [:KTK :cards :rare]))
-         frf-refuges (filter #(contains? refuge-names (:name %))
-                             (get-in all-sets [:FRF :cards]))
-         land-cards (concat ktk-fetches frf-refuges)
-         land-sheet (concat (take 105 (cycle refuge-names))
-                            (take 5 (cycle ally-fetch-names)))]
-     (fn [seed]
-       (let [sampled-name (->> (sample land-sheet seed) (drop 55) first)]
-         (-> (filter #(= (:name %) sampled-name) land-cards)
-           first))))})
-
-;;
 ;; Print Runs
 ;;
 
