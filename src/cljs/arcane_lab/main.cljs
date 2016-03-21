@@ -726,13 +726,10 @@
 
 (defn render-hud
   [state]
-  (let [dragged-ids (if (contains? state :drag)
+  (let [w-dragged-ids (if (contains? state :drag)
                         (update-in state [:drag :cards] (partial map :id))
                         state)
-        names-for-cards (into (sorted-map) (for [[y row] (:piles state)]
-                                             [y (into (sorted-map) (for [[x pile] row]
-                                                                     [x (map :name (:cards pile))]))]))
-        no-piles (dissoc dragged-ids :piles)]
+        no-piles (dissoc w-dragged-ids :piles)]
     (dom/div #js {:id "hud", :style #js {:position "relative"}}
              (dom/pre nil
                       (dom/b nil
