@@ -10,6 +10,8 @@
 ;; Definitions
 ;;
 
+(def rarities [:common :uncommon :rare :mythic-rare])
+
 (def rare-slot #{:rare :mythic-rare})
 (def foil-slot #{:foil-common :foil-uncommon :foil-rare :foil-mythic-rare})
 
@@ -18,6 +20,10 @@
    foil-slot {:common 10, :uncommon 3, :rare 1, :mythic-rare 0.125}})
 
 (def basic-names #{"Plains" "Island" "Swamp" "Mountain" "Forest"})
+
+(defn basic-land?
+  [card]
+  (contains? basic-names (:name card)))
 
 (def refuge-names #{"Bloodfell Caves"
                     "Blossoming Sands"
