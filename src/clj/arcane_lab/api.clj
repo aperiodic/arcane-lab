@@ -2,6 +2,7 @@
   (:require [arcane-lab.bucket :as bucket]
             [arcane-lab.cards :as cards]
             [arcane-lab.utils :refer [rand-seed str->long]]
+            [clojure.set :refer [rename-keys]]
             [clojure.string :as str]
             [compojure.core :refer [defroutes routes GET POST]]
             [compojure.route :as route]
@@ -49,7 +50,9 @@
 
 (defn full-card->client-card
   [card]
-  (select-keys card [:name :multiverseid :rarity :colors :manaCost :cmc]))
+  (-> card
+    (rename-keys {:dfc? :dfc})
+    (select-keys [:name :names :multiverseid :rarity :colors :manaCost :cmc :dfc])))
 
 (defn- edn-resp
   ([thing] (edn-resp thing 200 {}))
