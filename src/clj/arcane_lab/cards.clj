@@ -94,7 +94,14 @@
   (-> card
     (update :colors (partial mapv words->key))
     (update :rarity words->key)
-    (update :number parse-collector-number)))
+    (update :number parse-collector-number)
+    (assoc :dfc? (= (:layout card) "double-faced"))))
+
+(defn front-side?
+  [card]
+  (if-not (:dfc? card)
+    true
+    (zero? (mod (:number card) 1.0))))
 
 (def special-booster-set-processor
   "Post-processing for booster sets that is more than just removing extraneous
@@ -104,6 +111,26 @@
           ;; Fate Reforged contains the refuges also printed in Khans, but they
           ;; should only show up in the land slot, never in the comons.
           (update-in frf [:cards :common] (partial remove #(contains? refuge-names (:name %)))))})
+
+(def dfc-sets
+  "Note that Origins should not be here because its DFCs do not get their own
+  sheet and booster slots, so they work fine as regular old mythics."
+  #{:ISD})
+
+(defn move-dfc-cards
+  "Move the dfcs in the given cards map of a set to their own sheet, removing
+  them from the normal rarity fields."
+  [set]
+  (let [code (-> set :code keyword)
+        cards (:cards set)]
+    (if-not (contains? dfc-sets code)
+      set
+      (assoc set :cards (let [dfcs (->> (vals cards)
+                                     (apply concat)
+                                     (filter :dfc?))]
+                          (-> (into {} (for [[r r-cards] cards]
+                                         [r (remove :dfc? r-cards)]))
+                            (assoc :dfcs dfcs)))))))
 
 (defn process-booster-set
   "Pre-process a set to:
@@ -120,6 +147,7 @@
     (-> set
       (update :cards (partial remove extraneous-card?))
       (update :cards (partial group-by :rarity))
+      move-dfc-cards
       (update :booster (partial postwalk keywordize-string))
       (update :booster (partial remove #{:marketing}))
       special-processor)))
@@ -158,6 +186,11 @@
   [set-code]
   (let [booster-spec (-> (get-in booster-sets [set-code :booster]) flatten set)]
     (contains? booster-spec :land)))
+
+(defn dfcs-in-boosters?
+  [set-code]
+  (let [booster-spec (-> (get-in booster-sets [set-code :booster]) flatten set)]
+    (contains? booster-spec :double-faced)))
 
 ;;
 ;; Card Search
@@ -233,7 +266,6 @@
 
 (def slot->sheet
   ;; Unhandled Sheets (non-exhaustive):
-  ;;   - ISD :double-faced, [:land :checklist]
   ;;   - TSP :timeshifted-purple
   ;;   - PLC :timeshifted-common, :timeshifted-uncommon, :timeshifted-rare
   ;;   - FUT :timeshifted-common, :timeshifted-uncommon, :timeshifted-rare
@@ -241,7 +273,9 @@
    :rare :rares
    :uncommon :uncommons
    :common :commons
-   :land :lands})
+   :land :lands
+   [:land :checklist] :lands, [:checklist :land] :lands
+   :double-faced :dfcs})
 
 (defn rare-sheet
   "Ordered 'sheet' of all the rares in the set with the given code, with the
@@ -260,6 +294,18 @@
 (defn commons-sheet
   [set-code]
   (get-in booster-sets [set-code :cards :common]))
+
+(defn dfcs-sheet
+  [set-code]
+  (if-not (dfcs-in-boosters? set-code)
+    ()
+    (let [dfc-fronts (->> (get-in booster-sets [set-code :cards :dfcs])
+                       (filter front-side?))
+          {:keys [common uncommon rare mythic-rare]} (group-by :rarity dfc-fronts)]
+      (concat mythic-rare
+              (cycles 2 rare)
+              (cycles 6 uncommon)
+              (cycles 11 common)))))
 
 (defn lands-sheet
   [set-code]
@@ -289,6 +335,8 @@
              :uncommons (sample (uncommons-sheet set-code) seed)
              :commons (sample (commons-sheet set-code) seed)
              :boosters []}
+            (if (dfcs-in-boosters? set-code)
+              {:dfcs (sample (dfcs-sheet set-code) seed)})
             (if (lands-in-boosters? set-code)
               {:lands (lands-sheet set-code)})))))
 
@@ -307,12 +355,23 @@
       (< (count commons) 10)
       (< (count commons) 11))))
 
-(defn lands-empty?
+(defn dfcs-empty?
+  "Ok, so this one is a little weird, because we never want to add DFCs if there
+  are really none there. Consequently, if the set has no DFCs, the DFCs are
+  never empty."
   [print-run]
-  (let [{:keys [lands set-code]} print-run]
-    (if (lands-in-boosters? set-code)
-      (< (count lands) 1)
-      false)))
+  (if-not (dfcs-in-boosters? (:set-code print-run))
+    false
+    (< (count (:dfcs print-run)) 2)))
+
+(defn lands-empty?
+  "Ok, so this one is a little weird, because we never want to add lands if
+  there are really none there. Consequently, if the set has no lands, the lands
+  are never empty."
+  [print-run]
+    (if-not (lands-in-boosters? (:set-code print-run))
+      false
+      (< (count (:lands print-run)) 1)))
 
 (defn print-run-empty?
   "Returns true if you can't build a booster pack using the given print run."
@@ -320,7 +379,8 @@
   (or (rares-empty? print-run)
       (uncommons-empty? print-run)
       (commons-empty? print-run)
-      (lands-empty? print-run)))
+      (lands-empty? print-run)
+      (dfcs-empty? print-run)))
 
 (defn replenish-print-run
   [print-run]
@@ -331,7 +391,8 @@
       (rares-empty? print-run) (update :rares concat (shuffle (rare-sheet set-code)))
       (uncommons-empty? print-run) (update :uncommons concat (shuffle (uncommons-sheet set-code)))
       (commons-empty? print-run) (update :commons concat (shuffle (commons-sheet set-code)))
-      (lands-empty? print-run) (update :lands concat (lands-sheet set-code)))))
+      (lands-empty? print-run) (update :lands concat (lands-sheet set-code))
+      (dfcs-empty? print-run) (update :dfcs concat (dfcs-sheet set-code)))))
 
 ;;
 ;; Booster Sampling
