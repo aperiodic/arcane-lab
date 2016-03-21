@@ -61,15 +61,6 @@
                                ;; by the parse-collector-number function below.
    :ORI #(> (:number %) 272)}) ;; Cards in gatherer but not printed in boosters have number > 272
 
-(def special-booster-set-processor
-  "Post-processing for booster sets that is more than just removing extraneous
-  cards. Currently, this only encompasses removing the Khans refuges from Fate
-  Reforged's commons, since they only ever show up in the land slot."
-  {:FRF (fn [frf]
-          ;; Fate Reforged contains the refuges also printed in Khans, but they
-          ;; should only show up in the land slot, never in the comons.
-          (update-in frf [:cards :common] (partial remove #(contains? refuge-names (:name %)))))})
-
 (defn parse-collector-number
   "Parse a collector number to an integer or float. Most parsed collector
   numbers are integers, but the numbers of double-faced & split cards (which are
@@ -104,6 +95,15 @@
     (update-in [:colors] (partial mapv words->key))
     (update-in [:rarity] words->key)
     (update-in [:number] parse-collector-number)))
+
+(def special-booster-set-processor
+  "Post-processing for booster sets that is more than just removing extraneous
+  cards. Currently, this only encompasses removing the Khans refuges from Fate
+  Reforged's commons, since they only ever show up in the land slot."
+  {:FRF (fn [frf]
+          ;; Fate Reforged contains the refuges also printed in Khans, but they
+          ;; should only show up in the land slot, never in the comons.
+          (update-in frf [:cards :common] (partial remove #(contains? refuge-names (:name %)))))})
 
 (defn process-booster-set
   "Pre-process a set to:
