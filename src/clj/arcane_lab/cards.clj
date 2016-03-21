@@ -237,7 +237,7 @@
   ;;   - TSP :timeshifted-purple
   ;;   - PLC :timeshifted-common, :timeshifted-uncommon, :timeshifted-rare
   ;;   - FUT :timeshifted-common, :timeshifted-uncommon, :timeshifted-rare
-  {[:rare :mythic-rare] :rares
+  {[:rare :mythic-rare] :rares, [:mythic-rare :rare] :rares
    :rare :rares
    :uncommon :uncommons
    :common :commons
