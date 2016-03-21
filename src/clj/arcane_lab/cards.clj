@@ -92,9 +92,9 @@
     3 - parse collector number as an integer"
   [card]
   (-> card
-    (update-in [:colors] (partial mapv words->key))
-    (update-in [:rarity] words->key)
-    (update-in [:number] parse-collector-number)))
+    (update :colors (partial mapv words->key))
+    (update :rarity words->key)
+    (update :number parse-collector-number)))
 
 (def special-booster-set-processor
   "Post-processing for booster sets that is more than just removing extraneous
