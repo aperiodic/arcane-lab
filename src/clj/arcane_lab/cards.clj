@@ -294,13 +294,11 @@
 
 (defn rares-empty?
   [print-run]
-  (let [rare-count (count (:rares print-run))]
-    (< rare-count 1)))
+  (< (count (:rares print-run)) 1))
 
 (defn uncommons-empty?
   [print-run]
-  (let [uncommons-count (count (:uncommons print-run))]
-    (< uncommons-count 3)))
+  (< (count (:uncommons print-run)) 3))
 
 (defn commons-empty?
   [print-run]
