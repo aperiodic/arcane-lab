@@ -156,8 +156,8 @@
 
 (defn lands-in-boosters?
   [set-code]
-  (let [booster-spec (get-in booster-sets [set-code :booster])]
-    (contains? (set booster-spec) :land)))
+  (let [booster-spec (-> (get-in booster-sets [set-code :booster]) flatten set)]
+    (contains? booster-spec :land)))
 
 ;;
 ;; Card Search
