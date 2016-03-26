@@ -117,14 +117,33 @@
   sheet and booster slots, so they work fine as regular old mythics."
   #{:ISD})
 
+(defn link-other-side
+  "Find the other side of dfc-card in the set and return an udpated version of
+  dfc-card that has its entire other side in the :reverse field."
+  [dfc-card set]
+  (if-not (:dfc? dfc-card)
+    dfc-card
+    (let [{dfc-name :name, names :names} dfc-card
+        [_ [other-name]] (partition-by (partial = dfc-name) names)
+        other-side (->> (:cards set)
+                     (filter #(= (:name %) other-name))
+                     first)]
+      (assoc dfc-card :reverse (dissoc other-side :reverse)))))
+
+(defn link-dfcs
+  [set]
+  (if-not (contains? dfc-sets (-> set :code keyword))
+    set
+    (update set :cards (fn [cards]
+                         (map #(link-other-side % set) cards)))))
+
 (defn move-dfc-cards
   "Move the dfcs in the given cards map of a set to their own sheet, removing
   them from the normal rarity fields."
   [set]
-  (let [code (-> set :code keyword)
-        cards (:cards set)]
-    (if-not (contains? dfc-sets code)
-      set
+  (if-not (contains? dfc-sets (-> set :code keyword))
+    set
+    (let [cards (:cards set)]
       (assoc set :cards (let [dfcs (->> (vals cards)
                                      (apply concat)
                                      (filter :dfc?))]
@@ -146,6 +165,7 @@
         extraneous-card? (extraneous-card-predicate code (constantly false))]
     (-> set
       (update :cards (partial remove extraneous-card?))
+      link-dfcs
       (update :cards (partial group-by :rarity))
       move-dfc-cards
       (update :booster (partial postwalk keywordize-string))
