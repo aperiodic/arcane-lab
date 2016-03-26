@@ -694,14 +694,15 @@
                           (pr-str selected-count)))))))
 
 (defn render-card
-  [card]
-  (let [{:keys [name img-src x y selected?]} card]
-    (dom/div #js {:className (str "card" (if selected? " selected"))
-                  :style #js {:position "absolute"
-                              :left x
-                              :top y}}
-             (dom/img #js {:src img-src, :title name
-                           :width card-width, :height card-height}))))
+  ([card] (render-card card 0 0))
+  ([card dx dy]
+   (let [{:keys [name img-src x y selected?]} card]
+     (dom/div #js {:className (str "card" (if selected? " selected"))
+                   :style #js {:position "absolute"
+                               :left (+ x dx)
+                               :top (+ y dy)}}
+              (dom/img #js {:src img-src, :title name
+                            :width card-width, :height card-height})))))
 
 (defn render-pile
   [pile selection]
