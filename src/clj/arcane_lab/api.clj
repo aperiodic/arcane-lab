@@ -52,7 +52,7 @@
   [card]
   (-> card
     (rename-keys {:dfc? :dfc})
-    (select-keys [:name :names :multiverseid :rarity :colors :manaCost :cmc :dfc])))
+    (select-keys [:name :names :multiverseid :rarity :colors :manaCost :cmc :dfc :reverse])))
 
 (defn- edn-resp
   ([thing] (edn-resp thing 200 {}))

@@ -50,14 +50,20 @@
   [multiverseid]
   (str "/img/" multiverseid))
 
+(defn add-img-src
+  [card]
+  (assoc card :img-src (card-img-src (:multiverseid card))))
+
 (defn api-card->client-card
   [api-card]
-  (let [{:keys [multiverseid]} api-card]
-    (assoc api-card
-           :img-src (card-img-src multiverseid)
-           :id (rand-uuid)
-           :x half-gutter, :y half-gutter
-           :selected? false)))
+  (let [{:keys [multiverseid]} api-card
+        reverse-side (:reverse api-card)]
+    (cond-> api-card
+      identity add-img-src
+      identity (assoc :id (rand-uuid)
+                      :x half-gutter, :y half-gutter
+                      :selected? false)
+      reverse-side (update :reverse add-img-src))))
 
 (defn card-at
   ([card [x y]] (card-at card x y))
@@ -725,6 +731,19 @@
                (apply dom/div #js {:id "drag" :className "pile"}
                       (map render-card (:cards drag)))))))
 
+(defn render-dfc
+  [state]
+  (let [drag-cards (get-in state [:drag :cards] [])
+        {dx :x dy :y} (:drag state)
+        other-sides (map :reverse drag-cards)]
+    (if (seq (filter :dfc drag-cards))
+      (apply dom/div #js {:class "backsides-holder"
+                          :style #js {:position "absolute"
+                                      :left (+ dx card-width), :top dy}}
+             (map-indexed (fn [i card]
+                            (if card (render-card card 0 (* i pile-stride))))
+                          other-sides)))))
+
 (defn render-hud
   [state]
   (let [w-dragged-ids (if (contains? state :drag)
@@ -764,6 +783,7 @@
              (apply dom/div {:id "piles"} (map #(render-pile % selection) piles))
              (render-drag (:drag state) (:piles state))
              (render-selection (assoc state :piles-after-selection piles))
+             (render-dfc state)
              (render-footer state))))
 
 ;;
