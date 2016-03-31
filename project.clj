@@ -18,7 +18,8 @@
                  [puppetlabs/http-client "0.4.4"]
                  [org.omcljs/om "0.9.0"]
                  [ring "1.3.2"]
-                 [ring/ring-defaults "0.1.3"]]
+                 [ring/ring-defaults "0.1.3"]
+                 [org.slf4j/slf4j-nop "1.7.6"]]
   :profiles {:dev {:plugins [[lein-cljsbuild "1.1.3"]
                              [lein-ring "0.9.7"]]}}
   :ring {:handler arcane-lab.site/handler}
