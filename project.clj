@@ -19,8 +19,8 @@
                  [org.omcljs/om "0.9.0"]
                  [ring "1.3.2"]
                  [ring/ring-defaults "0.1.3"]]
-  :profiles {:dev {:plugins [[lein-cljsbuild "1.1.2"]
-                             [lein-ring "0.8.11"]]}}
+  :profiles {:dev {:plugins [[lein-cljsbuild "1.1.3"]
+                             [lein-ring "0.9.7"]]}}
   :ring {:handler arcane-lab.site/handler}
   :source-paths ["src/cljs" "src/clj"]
   :target-path "target/jvm/%s"
