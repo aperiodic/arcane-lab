@@ -139,12 +139,15 @@
   [dfc-card set]
   (if-not (:dfc? dfc-card)
     dfc-card
-    (let [{dfc-name :name, names :names} dfc-card
-        [_ [other-name]] (partition-by (partial = dfc-name) names)
-        other-side (->> (:cards set)
-                     (filter #(= (:name %) other-name))
-                     first)]
-      (assoc dfc-card :reverse (dissoc other-side :reverse)))))
+    (let [{this-name :name, names :names} dfc-card
+          {[other-name] false} (group-by (partial = this-name) names)
+          reverse-side (->> (:cards set)
+                         (filter #(= (:name %) other-name))
+                         first)]
+
+      (assoc dfc-card
+             :reverse (dissoc reverse-side :reverse)
+             :names [this-name other-name]))))
 
 (defn link-dfcs
   [set]
