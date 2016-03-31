@@ -11,13 +11,16 @@
 ;;
 
 (def rarities [:common :uncommon :rare :mythic-rare])
+(def sheets [:commons :uncommons :rares :dfcs :lands :timeshifted])
 
 (def rare-slot #{:rare :mythic-rare})
 (def foil-slot #{:foil-common :foil-uncommon :foil-rare :foil-mythic-rare})
+(def checklist-slot #{:land :checklist})
+(def soi-maybe-dfc-slot #{:double-faced :common})
 
 (def variable-slot-weights
-  {rare-slot {:rare 7 :mythic-rare 1}
-   foil-slot {:common 10, :uncommon 3, :rare 1, :mythic-rare 0.125}})
+  {foil-slot {:commons 80, :uncommons 24, :rares 9}
+   soi-maybe-dfc-slot {:commons 7 :dfcs 1}})
 
 (def basic-names #{"Plains" "Island" "Swamp" "Mountain" "Forest"})
 
@@ -108,7 +111,7 @@
   extraneous cards. Currently, this means
     * FRF: removing the Khans refuges from Fate Reforged's commons, since they
       only ever show up in the land slot.
-    * DKA: fixing the booster slot definitions.
+    * DKA, SOI: fixing the booster slot definitions.
   "
   {:FRF (fn [frf]
           ;; Fate Reforged contains the refuges also printed in Khans, but they
@@ -118,12 +121,17 @@
           (assoc dka :booster (concat [(vec rare-slot)]
                                       (repeat 3 :uncommon)
                                       (repeat 9 :common)
-                                      [:double-faced [:land :checklist]])))})
+                                      [:double-faced [:land :checklist]])))
+   :SOI (fn [soi]
+          (assoc soi :booster (concat [(vec rare-slot)]
+                                      (repeat 3 :uncommon)
+                                      (repeat 8 :common)
+                                      [(vec soi-maybe-dfc-slot) :double-faced :land])))})
 
 (def dfc-sets
   "Note that Origins should not be here because its DFCs do not get their own
   sheet and booster slots, so they work fine as regular old mythics."
-  #{:ISD :DKA})
+  #{:ISD :DKA :SOI})
 
 (defn link-other-side
   "Find the other side of dfc-card in the set and return an udpated version of
@@ -292,18 +300,37 @@
   [n coll]
   (take (* n (count coll)) (cycle coll)))
 
-(def slot->sheet
-  ;; Unhandled Sheets (non-exhaustive):
-  ;;   - TSP :timeshifted-purple
-  ;;   - PLC :timeshifted-common, :timeshifted-uncommon, :timeshifted-rare
-  ;;   - FUT :timeshifted-common, :timeshifted-uncommon, :timeshifted-rare
-  {[:rare :mythic-rare] :rares, [:mythic-rare :rare] :rares
-   :rare :rares
-   :uncommon :uncommons
-   :common :commons
-   :land :lands
-   [:land :checklist] :lands, [:checklist :land] :lands
-   :double-faced :dfcs})
+(defn- stochastic-slot->sheet
+  [slot seed]
+  (let [slot-space (mapcat (fn [[kind weight]] (repeat weight kind))
+                           (get variable-slot-weights soi-maybe-dfc-slot))]
+    (first (sample slot-space seed))))
+
+(defn slot->sheet
+  "Throws an error if given a slot it doesn't know how to handle.
+
+  Currently unhandled slots (non-exhaustive list):
+    - TSP :timeshifted-purple
+    - PLC :timeshifted-common, :timeshifted-uncommon, :timeshifted-rare
+    - FUT :timeshifted-common, :timeshifted-uncommon, :timeshifted-rare
+    - MMA/MM2 #{:foil-mythic-rare :foil-rare :foil-uncommon :foil-common}"
+  [slot seed]
+  (let [slot (if (coll? slot)
+               (set slot)
+               slot)
+        deterministic {rare-slot :rares
+                       :rare :rares
+                       :uncommon :uncommons
+                       :common :commons
+                       :land :lands
+                       checklist-slot :lands
+                       :double-faced :dfcs}
+        stochastic #{soi-maybe-dfc-slot}]
+    (cond
+      (contains? deterministic slot) (deterministic slot)
+      (contains? stochastic slot) (stochastic-slot->sheet slot seed)
+      :else (throw (IllegalArgumentException.
+                     (str "Don't know how to handle booster slot " slot))))))
 
 (defn rare-sheet
   "Ordered 'sheet' of all the rares in the set with the given code, with the
@@ -427,23 +454,33 @@
 ;;
 
 (defn print-booster
-  "Takes a print run and returns an updated version of the print run with an
-  additional booster pack in the :boosters field, and possibly with new sheets
-  in the card fields if they were necessary in order to print the pack"
-  [print-run]
-  (if (print-run-empty? print-run)
-    (recur (replenish-print-run print-run))
-    (let [{:keys [set-code boosters]} print-run
-          {:keys [booster] :as the-set} (booster-sets set-code)
-          booster-sheets (replace slot->sheet booster)
-          sheet->qty (frequencies booster-sheets)
-          !booster (atom [])
-          sheets' (into {} (for [[kind sheet] (select-keys print-run (vals slot->sheet))]
-                             (let [qty (sheet->qty kind 0)]
-                               (swap! !booster concat (take qty sheet))
-                               [kind (drop qty sheet)])))]
-      (-> (merge print-run sheets')
-        (update :boosters concat [@!booster])))))
+  "Takes a print run and an optional booster seed, and returns an updated
+  version of the print run with an additional booster pack in the :boosters
+  field, and possibly with new sheets in the card fields if they were necessary
+  in order to print the pack.
+  If the booster seed is not provided, then the print run's seed is used. This
+  is fine if you're just printing one booster, but if you're printing multiple
+  boosters you'll probably want to supply different seeds for each booster so
+  they'll have the chance to make different decisions for any stochastic slots
+  they might have (such as SOI's maybe-DFC-probably-common slot). Naturally, if
+  you're making something like a sealed pool where the contents should be
+  reproducible from a single seed, you'll want to derive the booster seeds from
+  that seed."
+  ([print-run] (print-booster print-run (:seed print-run)))
+  ([print-run booster-seed]
+   (if (print-run-empty? print-run)
+     (recur (replenish-print-run print-run) booster-seed)
+     (let [{:keys [seed set-code boosters]} print-run
+           {:keys [booster] :as the-set} (booster-sets set-code)
+           booster-sheets (map #(slot->sheet % seed) booster)
+           sheet->qty (frequencies booster-sheets)
+           !booster (atom [])
+           sheets' (into {} (for [[kind sheet] (select-keys print-run sheets)]
+                              (let [qty (sheet->qty kind 0)]
+                                (swap! !booster concat (take qty sheet))
+                                [kind (drop qty sheet)])))]
+       (-> (merge print-run sheets')
+         (update :boosters concat [@!booster]))))))
 
 (defn booster
   ([set-code] (booster set-code (rand-seed)))
@@ -454,18 +491,28 @@
      first)))
 
 (defn print-boosters
+  "Add the given quantity of boosters to the print run's :boosters field,
+  returning the updated run. The boosters will have seeds derived from the set
+  seed so they'll have the chance to make different choices for stochastic
+  booster slots (such as SOI's maybe-DFC-probably-common slot)."
   [print-run quantity]
-  (nth (iterate print-booster print-run) quantity))
+  (let [rng (seeded-rng (:seed print-run))]
+    (reduce (fn [print-run booster-seed]
+              (print-booster print-run booster-seed))
+            print-run
+            (repeatedly quantity #(.nextLong rng)))))
 
 (defn pool
   ([set-codes] (pool set-codes (rand-seed)))
   ([set-codes seed]
    (let [pack-count (frequencies set-codes)
+         total-packs (reduce + (vals pack-count))
          rng (seeded-rng seed)]
-     (->> (reduce (fn [{:keys [current-print-run boosters]} set-code]
+     (->> (reduce (fn [{:keys [current-print-run boosters]} [set-code booster-seed]]
                     (let [print-run' (print-booster (if (= (:set-code current-print-run) set-code)
                                                       current-print-run
-                                                      (print-run set-code (.nextLong rng))))
+                                                      (print-run set-code (.nextLong rng)))
+                                                    booster-seed)
                           new-print-run-threshold (/ 1.0 (pack-count set-code))
                           next-seed (.nextLong rng)]
                       {:current-print-run (if (or (< (.nextDouble rng) new-print-run-threshold)
@@ -475,6 +522,6 @@
                        :boosters (concat boosters [(last (:boosters print-run'))])}))
                   {:current-print-run (print-run (first set-codes) (.nextLong rng))
                    :boosters []}
-                  set-codes)
+                  (map vector set-codes (repeatedly total-packs #(.nextLong rng))))
        :boosters
        (apply concat)))))
