@@ -104,18 +104,26 @@
     (zero? (mod (:number card) 1.0))))
 
 (def special-booster-set-processor
-  "Post-processing for booster sets that is more than just removing extraneous
-  cards. Currently, this only encompasses removing the Khans refuges from Fate
-  Reforged's commons, since they only ever show up in the land slot."
+  "Post-processing for booster sets that require more than just removing
+  extraneous cards. Currently, this means
+    * FRF: removing the Khans refuges from Fate Reforged's commons, since they
+      only ever show up in the land slot.
+    * DKA: fixing the booster slot definitions.
+  "
   {:FRF (fn [frf]
           ;; Fate Reforged contains the refuges also printed in Khans, but they
           ;; should only show up in the land slot, never in the comons.
-          (update-in frf [:cards :common] (partial remove #(contains? refuge-names (:name %)))))})
+          (update-in frf [:cards :common] (partial remove #(contains? refuge-names (:name %)))))
+   :DKA (fn [dka]
+          (assoc dka :booster (concat [(vec rare-slot)]
+                                      (repeat 3 :uncommon)
+                                      (repeat 9 :common)
+                                      [:double-faced [:land :checklist]])))})
 
 (def dfc-sets
   "Note that Origins should not be here because its DFCs do not get their own
   sheet and booster slots, so they work fine as regular old mythics."
-  #{:ISD})
+  #{:ISD :DKA})
 
 (defn link-other-side
   "Find the other side of dfc-card in the set and return an udpated version of
