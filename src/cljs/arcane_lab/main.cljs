@@ -179,6 +179,13 @@
          repositioned (map-indexed reposition cards)]
      {:cards repositioned, :x x, :y y})))
 
+(defn state->cards
+  "Given a state with :piles, return all the cards in all the piles."
+  [state]
+  (->> (vals (:piles state))
+    (mapcat vals)
+    (mapcat :cards)))
+
 (defn add-pile
   [state pile]
   (let [{:keys [x y]} pile]
@@ -260,7 +267,6 @@
     (if-let [pile (pile-for row x)]
       (if (within-pile? pile x y)
         (card-for pile y)))))
-
 
 (defn pile-after-selection
   "Given a selection and a pile returns a new pile with the cards that the
@@ -744,6 +750,17 @@
                             (if card (render-card card 0 (* i pile-stride))))
                           other-sides)))))
 
+(defn preload-dfcs
+  [state]
+  (let [dfc-cards (->> (concat (filter :dfc (state->cards state))
+                               (filter :dfc (get-in state [:drag :cards])))
+                    (sort-by :name))]
+    (apply dom/div #js {:class "dfc-preloader"
+                        :style #js {:display "none"}}
+           (for [{:keys [img-src]} (map :reverse dfc-cards)]
+             (dom/img #js {:src img-src
+                           :style #js {:display "block"}})))))
+
 (defn render-hud
   [state]
   (let [w-dragged-ids (if (contains? state :drag)
@@ -784,7 +801,8 @@
              (render-drag (:drag state) (:piles state))
              (render-selection (assoc state :piles-after-selection piles))
              (render-dfc state)
-             (render-footer state))))
+             (render-footer state)
+             (preload-dfcs state))))
 
 ;;
 ;; Interface Hackery
