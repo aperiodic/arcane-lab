@@ -1,10 +1,10 @@
 (ns arcane-lab.cards
   (:require [arcane-lab.utils :refer [rand-seed sample seeded-rng words->key]]
             [bigml.sampling.simple]
+            [cheshire.core :as json]
             [clojure.java.io :as io]
             [clojure.string :as str]
-            [clojure.walk :refer [postwalk]]
-            [cheshire.core :as json]))
+            [clojure.walk :refer [postwalk]]))
 
 ;;
 ;; Definitions
