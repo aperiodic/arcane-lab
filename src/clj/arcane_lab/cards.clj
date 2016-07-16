@@ -32,6 +32,16 @@
   [card]
   (= (:layout card) "double-faced"))
 
+(defn melded-card?
+  [card]
+  (boolean (:melded card)))
+
+(defn meld-card?
+  [card]
+  (or (melded-card? card)
+      (-> (re-find #"\b(M|m)elds?\b" (or (:text card) ""))
+        boolean)))
+
 (def refuge-names #{"Bloodfell Caves"
                     "Blossoming Sands"
                     "Dismal Backwater"
