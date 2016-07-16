@@ -28,6 +28,10 @@
   [card]
   (contains? basic-names (:name card)))
 
+(defn dfc?
+  [card]
+  (= (:layout card) "double-faced"))
+
 (def refuge-names #{"Bloodfell Caves"
                     "Blossoming Sands"
                     "Dismal Backwater"
@@ -98,7 +102,7 @@
     (update :colors (partial mapv words->key))
     (update :rarity words->key)
     (update :number parse-collector-number)
-    (assoc :dfc? (= (:layout card) "double-faced"))))
+    (assoc :dfc? (dfc? card))))
 
 (defn front-side?
   [card]
