@@ -76,6 +76,7 @@
   {:8ED #(string? (:number %)) ;; Cards printed in intro decks but not in boosters for these two
    :9ED #(string? (:number %)) ;; sets have collector numbers like "S1", which are left as strings
                                ;; by the parse-collector-number function below.
+   :EMN :melded
    :ORI #(> (:number %) 272)}) ;; Cards in gatherer but not printed in boosters have number > 272
 
 (defn parse-collector-number
@@ -120,12 +121,18 @@
     true
     (zero? (mod (:number card) 1.0))))
 
+(def shadows-block-boosters
+  (concat [(vec rare-slot)]
+          (repeat 3 :uncommon)
+          (repeat 8 :common)
+          [(vec soi-maybe-dfc-slot) :double-faced :land]))
+
 (def special-booster-set-processor
   "Post-processing for booster sets that require more than just removing
   extraneous cards. Currently, this means
     * FRF: removing the Khans refuges from Fate Reforged's commons, since they
       only ever show up in the land slot.
-    * DKA, SOI: fixing the booster slot definitions.
+    * DKA, SOI, EMN: fixing the booster slot definitions.
   "
   {:FRF (fn [frf]
           ;; Fate Reforged contains the refuges also printed in Khans, but they
@@ -136,16 +143,13 @@
                                       (repeat 3 :uncommon)
                                       (repeat 9 :common)
                                       [:double-faced [:land :checklist]])))
-   :SOI (fn [soi]
-          (assoc soi :booster (concat [(vec rare-slot)]
-                                      (repeat 3 :uncommon)
-                                      (repeat 8 :common)
-                                      [(vec soi-maybe-dfc-slot) :double-faced :land])))})
+   :SOI #(assoc % :booster shadows-block-boosters)
+   :EMN #(assoc % :booster shadows-block-boosters)})
 
 (def dfc-sets
   "Note that Origins should not be here because its DFCs do not get their own
   sheet and booster slots, so they work fine as regular old mythics."
-  #{:ISD :DKA :SOI})
+  #{:ISD :DKA :SOI :EMN})
 
 (defn link-other-side
   "Find the other side of dfc-card in the set and return an udpated version of
@@ -197,8 +201,8 @@
         special-processor (special-booster-set-processor code identity)
         extraneous-card? (extraneous-card-predicate code (constantly false))]
     (-> set
-      (update :cards (partial remove extraneous-card?))
       link-dfcs
+      (update :cards (partial remove extraneous-card?))
       (update :cards (partial group-by :rarity))
       move-dfc-cards
       (update :booster (partial postwalk keywordize-string))
