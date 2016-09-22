@@ -66,7 +66,9 @@
 (def ignored-sets
   #{:EVG :DD2 :DD3 :DD3_DVD :DD3_EVG :DD3_GVL :DD3_JVC :DDC :DDD :DDE :DDF :DDG
     :DDH :DDI :DDJ :DDK :DDL :DDM :DDN :DDO :TPR :MED :ME2 :ME3 :ME4 :VMA :MD1
-    :H09 :PD2 :PD3 :DKM :DPA :ARC :DRB :V09 :V10 :V11 :V12 :V13 :V14 :V15})
+    :H09 :PD2 :PD3 :DKM :DPA :ARC :DRB :V09 :V10 :V11 :V12 :V13 :V14 :V15
+    ;; TODO: fix Conspiracy 2 by adding support for draft matters booster slot
+    :CN2})
 
 (def extraneous-card-predicate
   "This is for sets that need to have some cards removed that are technically in
@@ -77,6 +79,7 @@
    :9ED #(string? (:number %)) ;; sets have collector numbers like "S1", which are left as strings
                                ;; by the parse-collector-number function below.
    :EMN :melded
+   :KLD #(> (:number %) 264)
    :ORI #(> (:number %) 272)}) ;; Cards in gatherer but not printed in boosters have number > 272
 
 (defn parse-collector-number
@@ -127,6 +130,12 @@
           (repeat 8 :common)
           [(vec soi-maybe-dfc-slot) :double-faced :land]))
 
+(def normal-booster
+  (concat [(vec rare-slot)]
+          (repeat 3 :uncommon)
+          (repeat 10 :common)
+          [:land]))
+
 (def special-booster-set-processor
   "Post-processing for booster sets that require more than just removing
   extraneous cards. Currently, this means
@@ -144,7 +153,8 @@
                                       (repeat 9 :common)
                                       [:double-faced [:land :checklist]])))
    :SOI #(assoc % :booster shadows-block-boosters)
-   :EMN #(assoc % :booster shadows-block-boosters)})
+   :EMN #(assoc % :booster shadows-block-boosters)
+   :KLD #(assoc % :booster normal-booster)}) ; mtgjson data has a draft matters slot for KLD (?!)
 
 (def dfc-sets
   "Note that Origins should not be here because its DFCs do not get their own
