@@ -1,5 +1,6 @@
 (ns arcane-lab.cards
-  (:require [arcane-lab.utils :refer [rand-seed sample seeded-rng words->key]]
+  (:require [arcane-lab.data :as data]
+            [arcane-lab.utils :refer [rand-seed sample seeded-rng words->key]]
             [bigml.sampling.simple]
             [cheshire.core :as json]
             [clojure.java.io :as io]
@@ -227,10 +228,13 @@
   (let [raw-sets (-> (io/resource "cards-by-set.json")
                    slurp
                    (json/decode true))]
-    (into {} (for [[code set] raw-sets
-                   :when (and (not= (:type set) "promo")
-                              (not (contains? ignored-sets code)))]
-               [code (update-in set [:cards] (partial map process-card))]))))
+    (-> (into {} (for [[code set] raw-sets
+                       :when (and (not= (:type set) "promo")
+                                  (not (contains? ignored-sets code)))]
+                   [code (update-in set [:cards] (partial map process-card))]))
+      ;; EMN comes from its own data file because the MtGJSON AllSets version
+      ;; has bad data from Gatherer that they refuse to fix
+      (assoc :EMN (update (data/eldritch-moon) :cards (partial map process-card))))))
 
 (def booster-sets
   (into {} (for [[code set] all-sets

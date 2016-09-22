@@ -18,16 +18,17 @@
         out (java.io.File. path)]
     (spit out json)))
 
-(defn all-sets []
-  (parse-json-resource "cards-by-set.json"))
-
-(defn eldritch-moon []
-  (parse-json-resource "EMN.json"))
-
 (defn set-card->all-sets-card
   [card]
   (dissoc card
           :foreignNames :originalText :originalType :printings))
+
+(defn all-sets []
+  (parse-json-resource "cards-by-set.json"))
+
+(defn eldritch-moon []
+  (-> (parse-json-resource "EMN.json")
+    (update :cards (partial map set-card->all-sets-card))))
 
 (comment
   (def emn (eldritch-moon))
