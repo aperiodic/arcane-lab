@@ -1,5 +1,6 @@
 (ns arcane-lab.main
   (:require [ajax.core :as async-http]
+            [ajax.edn :refer [edn-response-format]]
             [cljs-uuid-utils.core :refer [make-random-uuid]]
             [cljs.core.async :as async]
             [cljs.reader :as reader]
@@ -911,7 +912,7 @@
       (let [[_ deck-hash] components]
         (transform-to-deck-ui!)
         (async-http/GET (str "/api/decks/" deck-hash)
-                        {:format :edn
+                        {:response-format (edn-response-format)
                          :handler start-app-from-api-cards!
                          :error-handler api-error}))
       ;; otherwise, if we're not loading a deck, we're in the sealed section
@@ -919,7 +920,7 @@
         (if-let [saved-state (load-state pack-spec seed)]
           (start-app-from-state! saved-state)
           (async-http/GET (str "/api/pool/" (or pack-spec default-pack-spec) "/" seed)
-                          {:format :edn
+                          {:response-format (edn-response-format)
                            :handler start-app-from-api-cards!
                            :error-handler api-error}))))))
 

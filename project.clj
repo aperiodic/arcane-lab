@@ -10,7 +10,7 @@
                  [cheshire "5.4.0"]
                  [clj-http "1.0.1"]
                  [clj-time "0.9.0"]
-                 [cljs-ajax "0.3.8"]
+                 [cljs-ajax "0.5.8"]
                  [compojure "1.4.0"]
                  [hiccup "1.0.5"]
                  [jamesmacaulay/zelkova "0.4.0"]
