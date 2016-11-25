@@ -45,10 +45,13 @@ h1, h2, h3, h4, p {
   width: 50em;
   z-index: 10;
 
-  color: #19150D;
-  background: rgba(234, 241, 251, 0.93);
+  background: rgba(234, 241, 251, 0.86);
   padding: 0 1em;
   border-radius: 0 1.5em 1.5em;
+}
+
+#meta > p {
+  color: #19150D;
 }
 
 #app {
