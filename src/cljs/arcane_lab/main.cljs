@@ -744,7 +744,7 @@
         {dx :x dy :y} (:drag state)
         other-sides (map :reverse drag-cards)]
     (if (seq (filter :dfc drag-cards))
-      (apply dom/div #js {:class "backsides-holder"
+      (apply dom/div #js {:className "backsides-holder"
                           :style #js {:position "absolute"
                                       :left (+ dx card-width), :top dy}}
              (map-indexed (fn [i card]
@@ -756,7 +756,7 @@
   (let [dfc-cards (->> (concat (filter :dfc (state->cards state))
                                (filter :dfc (get-in state [:drag :cards])))
                     (sort-by :name))]
-    (apply dom/div #js {:class "dfc-preloader"
+    (apply dom/div #js {:className "dfc-preloader"
                         :style #js {:display "none"}}
            (for [{:keys [img-src]} (map :reverse dfc-cards)]
              (dom/img #js {:src img-src
