@@ -12,7 +12,7 @@
             [compojure.core :refer [context routes GET POST]]
             [compojure.route :as route]
             [ring.middleware.content-type :refer [wrap-content-type]]
-            [ring.middleware.defaults :refer [site-defaults wrap-defaults]]
+            [ring.middleware.defaults :refer [api-defaults site-defaults wrap-defaults]]
             [ring.middleware.not-modified :refer [not-modified-response
                                                   wrap-not-modified]]
             [ring.middleware.resource :refer [wrap-resource]]
@@ -59,9 +59,11 @@
                  (bucket/bset bucket code card-names)
                  (resp/redirect (str "/decks/" code))))))
 
-     (context "/api" []
-              api/booster-routes
-              (api/decks-routes bucket))
+     (-> (context "/api" []
+                  api/booster-routes
+                  api/set-routes
+                  (api/decks-routes bucket))
+       (wrap-defaults api-defaults))
 
      (context "/img" []
               (images/image-routes images-cache))

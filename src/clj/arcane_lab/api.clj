@@ -98,6 +98,29 @@
                      (->> (cards/pool set-codes (str->long seed))
                        (map full-card->client-card)))))))
 
+(defn set->api-metadata
+  "Turn a set into its API representation, which is a subset of its metadata
+  fields; the cards are not included, nor are fields related to intra-service
+  compatibility like :magiccards_name or :mkm_name."
+  [mtg-set]
+  (-> mtg-set
+    (select-keys [:name :code :releaseDate :border :type :booster])))
+
+(defroutes set-routes
+  (GET "/sets" [booster-only]
+    (let [booster-filter? (not-any? #(= booster-only %)
+                                    ["0" "false" "f" "n" nil])]
+      (edn-resp (->> (vals cards/all-sets)
+                (map set->api-metadata)
+                (filterv (if booster-filter? :booster (constantly true))))
+              200)))
+
+  (GET "/sets/:set-code" [set-code]
+    (if-let [mtg-set (cards/all-sets (keyword set-code))]
+      (edn-resp (set->api-metadata mtg-set)
+                200)
+      (set-404 set-code))))
+
 (defn decks-routes
   [decks-bucket]
   (GET "/decks/:deck-hash" [deck-hash]
@@ -107,6 +130,7 @@
                      (map full-card->client-card)))
          {:status 404 :body "404: Deck not Found"})))
 
-(def booster-handler
-  (-> booster-routes
+(def static-handlers
+  (-> (routes booster-routes
+              set-routes)
     (wrap-defaults api-defaults)))
