@@ -94,6 +94,11 @@
     (map :set)
     )
 
+  (-> cards/all-sets
+    :KLD
+    (dissoc :cards)
+    )
+
   (let [mm2 (:MM2 cards/booster-sets)
         printings (cards/printings "Lorescale Coatl")
         mm2-printing (cards/printing-in-set "Scion of the Wild" mm2)]

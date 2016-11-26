@@ -22,21 +22,13 @@ h1, h2, h3, h4, p {
   margin-right: 0.5em;
 }
 
+#navigator {
+  color: rgb(234, 241, 251);
+}
+
 .error {
   font-weight: bold;
   color: #B73C21;
-}
-
-#help-button {
-  margin-right: 10.5em;
-}
-
-#import-button {
-  margin-left: 7.2em;
-}
-
-#new-pool-button {
-  margin-left: 7.5em;
 }
 
 #meta {

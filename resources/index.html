@@ -25,9 +25,10 @@
 
       <p>
       The "New Pool" button will generate a new pool in the same format as the current pool.
-      You can change the format by changing the path of the URL in your browser's address bar. The path is the part after "http://labmaniac.com/", that is right now probably "6KTK" followed by a slash and a bunch of numbers.
-      For example, to switch to the Lorwyn block sealed format, change the part of the URL that starts with "6KTK" to "3LRW3MOR", making the final URL "http://labmaniac.com/3LRW3MOR".
-      If you mess up a set's code or don't provide six packs, then you'll get an error message rather than an illegal pool.
+      You can change the format by using the "Change Format" selection box.
+      Once you select a new format, a new pool in that format will be generated.
+      You can also make custom formats by editing the URL directly; the format is a number of packs followed by the set code for those packs, and multiple sets can be used.
+      For example, '3EMN3SOI' makes a pool with three Eldritch Moon packs and three Shadows over Innistrad packs.
       </p>
 
       <p>
@@ -49,6 +50,7 @@
       <span class="button"><a id="redo-button" href="#">Redo</a></span>
       <span class="button"><a id="import-button" href="../../import">Import List</a></span>
       <span class="button"><a id="new-pool-button" href="./">New Pool</a></span>
+      <span id="navigator"></span>
     </div>
     <div id="app"></div>
     <script src="/js/static/react-0.11.1.js"></script>

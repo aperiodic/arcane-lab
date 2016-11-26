@@ -805,6 +805,27 @@
              (render-footer state)
              (preload-dfcs state))))
 
+(defn navigate!
+  "Redirect to the sealed format for the given set code."
+  [set-slug]
+  (set! (.-location js/document) (str "/6" set-slug)))
+
+(defn render-navigator
+  ([all-sets] (render-navigator all-sets nil))
+  ([all-sets current-set]
+   (dom/span #js {}
+     "Select Format:"
+     (dom/select #js {:className "om-selector"
+                      :name "set"
+                      :defaultValue (or current-set "KLD")
+                      :onChange (fn [event]
+                                  (navigate! (-> event .-target .-value)))}
+               (for [{:keys [code] :as mtg-set} sets-by-code]
+                 (dom/option #js {:value code
+                                  :id (str "select-set-option-" code)}
+                             (:name mtg-set)))))))
+
+
 ;;
 ;; Interface Hackery
 ;;
@@ -829,7 +850,22 @@
         (render [_]
           (render-state app))))
     state
-    {:target (. js/document (getElementById "app"))}))
+    {:target (.getElementById js/document "app")}))
+
+(defn start-navigator
+  "Given the target id for the navigator element, a sequence with every set's
+  metadata and optionally the current set, create the site navigator."
+  ([target-id all-sets]
+   (start-navigator target-id all-sets ::no-set))
+  ([target-id all-sets current-set]
+   (om/root
+     (fn [app owner]
+       (reify om/IRender
+         (render [_]
+           (render-navigator all-sets
+                             (if (not= current-set ::no-set) current-set)))))
+     all-sets
+     {:target (.getElementById js/document (name target-id))})))
 
 (defn start-app-from-state!
   [init-state]
@@ -894,7 +930,7 @@
   (let [init-state (api-cards->init-state api-cards)]
     (start-app-from-state! init-state)))
 
-(defn api-error
+(defn halt-app-on-err
   [{:keys [status], {:keys [msg kind]} :response}]
   (if (= status 400)
     (js/alert (str msg " Please edit the packs parameter in the query string"
@@ -902,7 +938,31 @@
     (js/alert "Could not communicate with the backend server."
               " Please try again later")))
 
+(defn log-error
+  [{:keys [status], {:keys [msg kind] :as response} :response, :as err}]
+  (println "got a" status msg "error:" kind)
+  (println (keys err))
+  (println (:failure err) (:status-text err)))
+
 (def default-pack-spec "6KTK")
+
+(defn get-sets-and-start-navigator!
+  []
+  ;; This is attacker-controlled, so we have to be very careful how we handle
+  ;; it in order to avoid getting owned. So rather than use its value
+  ;; directly, we only match it against our set of MtG set keywords.
+  (let [url-set (-> js/document
+                  .-location
+                  .-pathname
+                  (.substr 2 3)
+                  keyword)
+        set-match nil #_(booster-codes url-set)]
+    (async-http/GET "/api/sets?booster-only=1"
+                    {:response-format (edn-response-format)
+                     :handler (if set-match
+                                #(start-navigator "navigator" % set-match)
+                                #(start-navigator "navigator" %))
+                     :error-handler log-error})))
 
 (defn get-state-and-start-app!
   []
@@ -914,7 +974,7 @@
         (async-http/GET (str "/api/decks/" deck-hash)
                         {:response-format (edn-response-format)
                          :handler start-app-from-api-cards!
-                         :error-handler api-error}))
+                         :error-handler halt-app-on-err}))
       ;; otherwise, if we're not loading a deck, we're in the sealed section
       (let [[pack-spec seed] components]
         (if-let [saved-state (load-state pack-spec seed)]
@@ -922,9 +982,10 @@
           (async-http/GET (str "/api/pool/" (or pack-spec default-pack-spec) "/" seed)
                           {:response-format (edn-response-format)
                            :handler start-app-from-api-cards!
-                           :error-handler api-error}))))))
+                           :error-handler halt-app-on-err}))))))
 
 (get-state-and-start-app!)
+(get-sets-and-start-navigator!)
 
 ;;
 ;; Help Button
