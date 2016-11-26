@@ -3,9 +3,9 @@
   :url "https://github.com/aperiodic/arcane-lab"
   :license {:name "GNU General Public License"
             :url "https://gnu.org/licenses/gpl-3.0.txt"}
-  :dependencies [[org.clojure/clojure "1.7.0"]
-                 [org.clojure/clojurescript "1.7.228"]
-                 [org.clojure/core.async "0.2.374"]
+  :dependencies [[org.clojure/clojure "1.8.0-RC5"]
+                 [org.clojure/clojurescript "1.9.293"]
+                 [org.clojure/core.async "0.2.395"]
                  [bigml/sampling "3.0"]
                  [cheshire "5.4.0"]
                  [clj-http "1.0.1"]
