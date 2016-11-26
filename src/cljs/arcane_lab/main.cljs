@@ -820,7 +820,9 @@
                       :defaultValue (or current-set "KLD")
                       :onChange (fn [event]
                                   (navigate! (-> event .-target .-value)))}
-               (for [{:keys [code] :as mtg-set} sets-by-code]
+               (for [{:keys [code] :as mtg-set} (->> all-sets
+                                                  (sort-by :releaseDate)
+                                                  reverse)]
                  (dom/option #js {:value code
                                   :id (str "select-set-option-" code)}
                              (:name mtg-set)))))))
