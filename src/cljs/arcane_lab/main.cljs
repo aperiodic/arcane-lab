@@ -1,6 +1,7 @@
 (ns arcane-lab.main
   (:require [ajax.core :as async-http]
             [ajax.edn :refer [edn-response-format]]
+            [arcane-lab.sets :as sets]
             [cljs-uuid-utils.core :refer [make-random-uuid]]
             [cljs.core.async :as async]
             [cljs.reader :as reader]
@@ -813,19 +814,21 @@
 (defn render-navigator
   ([all-sets] (render-navigator all-sets nil))
   ([all-sets current-set]
-   (dom/span #js {}
-     "Select Format:"
+   (let [valid-set? (comp sets/sets-that-work keyword :code)]
+     (dom/span #js {}
+     "Sealed Format: "
      (dom/select #js {:className "om-selector"
                       :name "set"
-                      :defaultValue (or current-set "KLD")
+                      :defaultValue (or (name current-set) "KLD")
                       :onChange (fn [event]
                                   (navigate! (-> event .-target .-value)))}
-               (for [{:keys [code] :as mtg-set} (->> all-sets
-                                                  (sort-by :releaseDate)
-                                                  reverse)]
-                 (dom/option #js {:value code
-                                  :id (str "select-set-option-" code)}
-                             (:name mtg-set)))))))
+                 (for [{:keys [code] :as mtg-set} (->> all-sets
+                                                    (filter valid-set?)
+                                                    (sort-by :releaseDate)
+                                                    reverse)]
+                   (dom/option #js {:value code
+                                    :id (str "select-set-option-" code)}
+                               (:name mtg-set))))))))
 
 
 ;;
@@ -958,7 +961,7 @@
                   .-pathname
                   (.substr 2 3)
                   keyword)
-        set-match nil #_(booster-codes url-set)]
+        set-match (sets/sets-that-work url-set)]
     (async-http/GET "/api/sets?booster-only=1"
                     {:response-format (edn-response-format)
                      :handler (if set-match
