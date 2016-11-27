@@ -25,10 +25,10 @@
   :jvm-opts ["-Xmx512m"]
 
   :ring {:handler arcane-lab.site/handler}
-  :source-paths ["src/cljs" "src/clj"]
+  :source-paths ["src/cljs" "src/clj" "src/cljc"]
   :target-path "target/jvm/%s"
   :cljsbuild {:builds [{:id "arcane-lab"
-                        :source-paths ["src/cljs"]
+                        :source-paths ["src/cljs" "src/cljc"]
                         :compiler {:output-to "target/js/arcane-lab.js"
                                    :output-dir "target/js"
                                    :optimizations :none
