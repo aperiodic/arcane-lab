@@ -36,7 +36,7 @@
 (def pile-stride (int (/ card-height 9.5)))
 (def pile-spacing (+ card-width gutter))
 
-(def mouse-y-offset 44)
+(def mouse-y-offset 48)
 
 (def u-key-code 85)
 (def r-key-code 82)
@@ -816,7 +816,7 @@
   ([all-sets current-set]
    (let [valid-set? (comp sets/sets-that-work keyword :code)]
      (dom/span #js {}
-     "Sealed Format: "
+     "Change Format: "
      (dom/select #js {:className "om-selector"
                       :name "set"
                       :defaultValue (or (name current-set) "KLD")

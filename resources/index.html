@@ -45,17 +45,17 @@
       </p>
     </div>
     <div id="ui">
-      <span class="button"><a id="help-button" href="#">Help</a></span>
-      <span class="button"><a id="undo-button" href="#">Undo</a></span>
-      <span class="button"><a id="redo-button" href="#">Redo</a></span>
-      <span class="button"><a id="import-button" href="../../import">Import List</a></span>
-      <span class="button"><a id="new-pool-button" href="./">New Pool</a></span>
-      <span id="navigator">Sealed Format:
+      <span class="button"><a id="help-button" href="#"><button>?</button></a></span>
+      <span class="button"><a id="undo-button" href="#"><button>Undo</button></a></span>
+      <span class="button"><a id="redo-button" href="#"><button>Redo</button></a></span>
+      <span class="button"><a id="new-pool-button" href="./"><button>New Pool</button></a></span>
+      <span id="navigator">Change Format:
         <select name="set" default-value="blank">
           <option value="blank">&nbsp;</option>
           <option>Champions of Kamigawa</option><!-- currently longest setname, change if new set beats it -->
         </select>
       </span>
+      <span class="button"><a id="import-button" href="../../import"><button>Import Decklist</button></a></span>
     </div>
     <div id="app"></div>
     <script src="/js/static/react-0.11.1.js"></script>

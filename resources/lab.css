@@ -4,31 +4,64 @@ body {
   font-size: 18px;
 }
 
-#ui {
-  position: relative;
-  left: 12px;
-}
-
 h1, h2, h3, h4, p {
   color: rgb(234, 241, 251);
 }
 
-.button > a {
-  color: rgb(234, 241, 251);
+.button {
+  margin-right: 0.5em;
   font-weight: bold;
 }
 
-.button {
-  margin-right: 0.5em;
-}
-
 #navigator {
-  color: rgb(234, 241, 251);
+  font-weight: bold;
 }
 
 .error {
   font-weight: bold;
   color: #B73C21;
+}
+
+#ui {
+  position: fixed;
+  left: 0px;
+  top: 0px;
+  z-index: 42;
+  width: 100%;
+
+  padding: 0.5em;
+  background-color: rgb(45, 128, 167);
+  color: #ffffff;
+}
+
+#ui button, #ui select {
+  background: #e0d5c0;
+  color: #19150d;
+  border-radius: 0.3em;
+}
+
+#ui button {
+  font-size: 16px;
+  font-weight: bold;
+}
+
+#ui option, #ui select {
+  font-weight: bold;
+}
+
+#ui select {
+  position: relative;
+  top: -0.1em;
+
+  font-size: 15px;
+}
+
+#help-button, #redo-button {
+  margin-right: 1em;
+}
+
+#navigator {
+  margin-right: 1.5em;
 }
 
 #meta {
@@ -37,9 +70,10 @@ h1, h2, h3, h4, p {
   width: 50em;
   z-index: 10;
 
-  background: rgba(234, 241, 251, 0.86);
+  background: rgba(234, 241, 251, 0.9);
   padding: 0 1em;
   border-radius: 0 1.5em 1.5em;
+  box-shadow: 0px 0px 16px 2px black;
 }
 
 #meta > p {
@@ -49,7 +83,7 @@ h1, h2, h3, h4, p {
 #app {
   position: relative;
   left: -8px;
-  top: 12px;
+  top: 38px;
 }
 
 #selection, .selected {
