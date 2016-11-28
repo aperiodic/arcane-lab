@@ -806,27 +806,35 @@
              (render-footer state)
              (preload-dfcs state))))
 
-(defn navigate!
-  "Redirect to the sealed format for the given set code."
-  [set-slug]
-  (set! (.-location js/document) (str "/6" set-slug)))
+(defn- navigate!
+  "Redirect to the given sealed format."
+  [format-str]
+  (set! (.-location js/document) (str "/" format-str)))
 
 (defn render-navigator
   ([all-sets] (render-navigator all-sets nil))
-  ([all-sets current-set]
-   (let [valid-set? (comp sets/sets-that-work keyword :code)]
+  ([all-sets current-format]
+   (let [valid-sets (filter (comp sets/sets-that-work keyword :code) all-sets)
+         known-formats (into #{} (map :sealed-format valid-sets))
+         custom-format? (not (contains? known-formats current-format))
+         options (if-not custom-format?
+                   valid-sets
+                   (conj valid-sets
+                         {:code "custom"
+                          :name (str "Custom - " current-format)
+                          :release-date "9999-99-99"}))]
      (dom/span #js {}
      "Change Format: "
      (dom/select #js {:className "om-selector"
                       :name "set"
-                      :defaultValue (or (name current-set) "KLD")
+                      :defaultValue (or current-format "6KLD")
                       :onChange (fn [event]
                                   (navigate! (-> event .-target .-value)))}
-                 (for [{:keys [code] :as mtg-set} (->> all-sets
-                                                    (filter valid-set?)
-                                                    (sort-by :releaseDate)
-                                                    reverse)]
-                   (dom/option #js {:value code
+                 (for [{:as mtg-set
+                        :keys [code sealed-format]} (->> options
+                                                      (sort-by :release-date)
+                                                      reverse)]
+                   (dom/option #js {:value sealed-format
                                     :id (str "select-set-option-" code)}
                                (:name mtg-set))))))))
 
@@ -859,16 +867,17 @@
 
 (defn start-navigator
   "Given the target id for the navigator element, a sequence with every set's
-  metadata and optionally the current set, create the site navigator."
+  metadata and optionally the current format, create the site navigator."
   ([target-id all-sets]
-   (start-navigator target-id all-sets ::no-set))
-  ([target-id all-sets current-set]
+   (start-navigator target-id all-sets ::no-format))
+  ([target-id all-sets current-format]
    (om/root
      (fn [app owner]
        (reify om/IRender
          (render [_]
-           (render-navigator all-sets
-                             (if (not= current-set ::no-set) current-set)))))
+           (render-navigator
+             all-sets
+             (if (not= current-format ::no-format) current-format)))))
      all-sets
      {:target (.getElementById js/document (name target-id))})))
 
@@ -953,19 +962,23 @@
 
 (defn get-sets-and-start-navigator!
   []
-  ;; This is attacker-controlled, so we have to be very careful how we handle
-  ;; it in order to avoid getting owned. So rather than use its value
-  ;; directly, we only match it against our set of MtG set keywords.
-  (let [url-set (-> js/document
-                  .-location
-                  .-pathname
-                  (.substr 2 3)
-                  keyword)
-        set-match (sets/sets-that-work url-set)]
+  ;; The format from the URL is attacker-controlled , so we have to be very
+  ;; careful how we handle it in order to avoid getting owned. We'll only accept
+  ;; sealed formats from URLs if they consist of repeated four-character
+  ;; segments that each have a number followed by three alphanumeric characters.
+  (let [url-format (-> js/document
+                     .-location
+                     .-pathname
+                     (.split "/")
+                     (aget 1)
+                     str/upper-case)
+        current-format (if (re-matches #"([0-9][0-9A-Z]{3})+" url-format)
+                         url-format)]
+    (println current-format)
     (async-http/GET "/api/sets?booster-only=1"
                     {:response-format (edn-response-format)
-                     :handler (if set-match
-                                #(start-navigator "navigator" % set-match)
+                     :handler (if current-format
+                                #(start-navigator "navigator" % current-format)
                                 #(start-navigator "navigator" %))
                      :error-handler log-error})))
 

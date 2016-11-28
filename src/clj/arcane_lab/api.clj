@@ -104,7 +104,7 @@
   compatibility like :magiccards_name or :mkm_name."
   [mtg-set]
   (-> mtg-set
-    (select-keys [:name :code :releaseDate :border :type :booster])))
+    (select-keys [:name :code :release-date :border :type :booster :sealed-format])))
 
 (defroutes set-routes
   (GET "/sets" [booster-only]
