@@ -81,22 +81,23 @@
          (resp/redirect (str "/" pack-spec "/" seed))))
 
   (GET "/pool/:pack-spec/:seed" [pack-spec seed]
-       (edn-resp (let [set-codes (pack-spec->codes pack-spec)
-                       booster-count (count set-codes)]
-                   (cond
-                     (some nil? set-codes)
-                     (let [msg (str "Could not recognize these set codes: "
-                                    (str/join ", " (unrecognized-sets pack-spec)) ".")]
-                       {:msg msg, :kind "unrecognized-set"} 400)
+       (let [set-codes (pack-spec->codes pack-spec)
+             booster-count (count set-codes)]
+         (cond
+           (some nil? set-codes)
+           (let [msg (str "Could not recognize these set codes: "
+                          (str/join ", " (unrecognized-sets pack-spec)) ".")]
+             (edn-resp {:msg msg, :kind "unrecognized-set"} 400))
 
-                     (not= booster-count 6)
-                     (let [msg (str "A sealed pool requires exactly 6 booster packs, but"
-                                    " you asked for " booster-count ".")]
-                       {:msg msg, :kind "bad-booster-count"} 400)
+           (not= booster-count 6)
+           (let [msg (str "A sealed pool requires exactly 6 booster packs, but"
+                          " you asked for " booster-count ".")]
+             (edn-resp {:msg msg, :kind "bad-booster-count"} 400))
 
-                     :otherwise
-                     (->> (cards/pool set-codes (str->long seed))
-                       (map full-card->client-card)))))))
+           :otherwise
+           (->> (cards/pool set-codes (str->long seed))
+             (map full-card->client-card)
+             edn-resp)))))
 
 (defn set->api-metadata
   "Turn a set into its API representation, which is a subset of its metadata
