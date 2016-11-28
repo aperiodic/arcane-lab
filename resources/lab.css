@@ -8,6 +8,10 @@ h1, h2, h3, h4, p {
   color: rgb(234, 241, 251);
 }
 
+.underline {
+  text-decoration: underline;
+}
+
 .button {
   margin-right: 0.5em;
   font-weight: bold;
