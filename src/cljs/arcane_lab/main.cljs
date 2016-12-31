@@ -731,10 +731,9 @@
                             :width card-width, :height card-height})))))
 
 (defn render-pile
-  [pile selection]
-  (let [{cards :cards} (pile-after-selection selection pile)]
-    (apply dom/div #js {:className "pile"}
-           (map render-card cards))))
+  [{cards :cards}]
+  (apply dom/div #js {:className "pile"}
+         (map render-card cards)))
 
 (defn render-drag
   [drag piles]
@@ -811,7 +810,7 @@
                 (mapcat vals)
                 (map (partial pile-after-selection selection)))]
     (dom/div #js {:id "dom-root"}
-             (apply dom/div {:id "piles"} (map #(render-pile % selection) piles))
+             (apply dom/div {:id "piles"} (map render-pile piles))
              (render-drag (:drag state) (:piles state))
              (render-selection (assoc state :piles-after-selection piles))
              (render-dfc state)
