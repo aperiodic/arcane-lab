@@ -224,6 +224,24 @@
   [row]
   (+ gutter (apply max (map pile-height (vals row)))))
 
+(defn max-pile-x
+  "Given the piles map from the state, return the highest x-coordinate for a
+  pile."
+  [piles]
+  (loop [rows (seq piles), x-max 0]
+    (if-let [[_ row] (first rows)]
+      (let [row-max (loop [xs (keys row)
+                           row-max 0]
+                      (if-let [x (first xs)]
+                        (if (> x row-max)
+                          (recur (next xs) x)
+                          (recur (next xs) row-max))
+                        row-max))]
+        (if (> row-max x-max)
+          (recur (next rows) row-max)
+          (recur (next rows) x-max)))
+      x-max)))
+
 (defn row-for
   "Returns the last row whose y position is less than or equal to y's, or nil if
   no such row exists."
@@ -567,27 +585,20 @@
 (defn update-selection-or-drag-destination-action
   [pos]
   (fn [{:keys [drag selection piles] :as state}]
-    (let [max-pile-x (loop [rows (seq piles), x-max 0]
-                       (if-let [[_ row] (first rows)]
-                         (let [row-max (loop [xs (keys row), row-max 0]
-                                         (if-let [x (first xs)]
-                                           (if (> x row-max)
-                                             (recur (next xs) x)
-                                             (recur (next xs) row-max))
-                                           row-max))]
-                           (if (> row-max x-max)
-                             (recur (next rows) row-max)
-                             (recur (next rows) x-max)))
-                         x-max))
+    (let [max-pile-x (or (:max-pile-x state) (max-pile-x piles))
           max-x (+ max-pile-x card-width gutter
                    (if drag (+ card-width half-card-width) 0))
           x (min max-x (nth pos 0))
           y (nth pos 1)]
       (cond
-        selection (update-in state [:selection] assoc :stop [x y])
         drag (let [[px py] (drag-pile-pos x y)]
                (assoc state :drag (make-pile (:cards drag) px py)))
-        :otherwise state))))
+        selection (update-in state [:selection] assoc :stop [x y])
+        :else state))))
+
+(defn add-max-pile-x
+  [{:keys [piles] :as state}]
+  (assoc state :max-pile-x (max-pile-x piles)))
 
 (defn stop-selection-or-drag-action
   [_]
@@ -605,6 +616,7 @@
                (add-pile new-pile)
                (update-in [:piles] rejigger-rows)
                (dissoc :drag)
+               add-max-pile-x
                (add-to-history-if-new!)))
       :otherwise state)))
 
@@ -883,7 +895,8 @@
 
 (defn start-app-from-state!
   [init-state]
-  (let [state-atom (sig/pipe-to-atom (state-signal init-state))]
+  (let [init-state (add-max-pile-x init-state)
+        state-atom (sig/pipe-to-atom (state-signal init-state))]
     (swap! !fate update-in [:past] (fnil conj ()) init-state)
     (start-om state-atom)))
 
