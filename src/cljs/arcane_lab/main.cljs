@@ -203,9 +203,9 @@
       (update-in state [:piles y] dissoc x))))
 
 (defn pile-selected?
-  [selection pile]
-  (and (boolean selection)
-       (let [[l r t b] (selection-edges selection)
+  [edges pile]
+  (and (boolean edges)
+       (let [[l r t b] edges
              {x :x, y :y} pile
              height (pile-height pile)]
          (within? (- l card-width) r (- t height) b x y))))
@@ -288,42 +288,50 @@
       (if (within-pile? pile x y)
         (card-for pile y)))))
 
+(defn covered-card-selected-by
+  "Given the edges of a selection, return a predicate that determines whether
+  a covered card (i.e. not the top card) in a pile that overlaps the selection
+  is selected by the selection."
+  [selection-edges]
+  (let [[_ _ t b] selection-edges]
+    (fn [{y :y}]
+      (and (<= y b)
+           (>= (+ y pile-stride) t)))))
+
+(defn top-card-selected-by
+  "Given the edges of a selection, return a predicate that determines whether
+  the top card in a pile that overlaps the selection is selected by the
+  selection."
+  [selection-edges]
+  (let [[_ _ t b] selection-edges]
+    (fn [{y :y}]
+      (and (<= y b)
+           (>= (+ y card-height) t)))))
+
 (defn pile-after-selection
   "Given a selection and a pile returns a new pile with the cards that the
   selection hits marked by setting their :selected? field to true."
   [selection pile]
-  (cond
-    (not selection)
+  (if-not selection
     pile
-
-    (not (pile-selected? selection pile))
-    (update-in pile [:cards] (partial mapv #(assoc % :selected? false)))
-
-    :otherwise
-    (let [[l r t b] (selection-edges selection)
-          {cards :cards} pile
-          uncovered (last cards)
-          select-uncovd? (let [{y :y} uncovered]
-                           (and (not (> y b))
-                                (not (< (+ y card-height) t))))
-          covered (butlast cards)
-          covd-selected? (fn [{y :y}]
-                           (and (not (> y b))
-                                (not (< (+ y pile-stride) t))))
-          selected-covd-ids (->> (filter covd-selected? covered) (map :id))
-          selected-ids (if select-uncovd?
-                         (concat selected-covd-ids (list (:id uncovered)))
-                         selected-covd-ids)
-          cards' (loop [cs cards, slctd-ids selected-ids, cs' []]
-                   (if-let [{:keys [id] :as c} (first cs)]
-                     (let [selected? (= id (first slctd-ids))
-                           c' (assoc c :selected? selected?)]
-                       (if selected?
-                         (recur (next cs) (next slctd-ids) (conj cs' c'))
-                         (recur (next cs) slctd-ids (conj cs' c'))))
-                     ;; else (no more cards)
-                     cs'))]
-      (assoc pile :cards cards'))))
+    (let [[l r t b :as edges] (selection-edges selection)]
+      (if-not (pile-selected? edges pile)
+        (update-in pile [:cards] (partial mapv #(assoc % :selected? false)))
+        (let [covered-selected? (covered-card-selected-by edges)
+              top-selected? (top-card-selected-by edges)]
+          (assoc pile :cards (loop [cards (:cards pile), out []]
+                               (if-let [card (first cards)]
+                                 (let [next-cards (next cards)
+                                       top-card? (not next-cards)
+                                       selected? (if top-card?
+                                                   (top-selected? card)
+                                                   (covered-selected? card))
+                                       card' (assoc card :selected? selected?)]
+                                   (if top-card?
+                                     (conj out card')
+                                     (recur next-cards (conj out card'))))
+                                 ;; else (no more cards)
+                                 out))))))))
 
 (defn move-row
   [piles y y']
