@@ -218,11 +218,20 @@
   (if (= count row-ys 1)
     ()
     (->> (reductions #(- %2 %1) row-ys)
-      (drop 1))))
+      (drop 1)
+      (map-indexed (fn [i x] (if (zero? i) (+ x half-gutter) x)))
+      (mapv #(- % half-gutter)))))
 
 (defn row-height
   [row]
   (+ gutter (apply max (map pile-height (vals row)))))
+
+(defn row-i-height
+  [piles i]
+  (row-height (-> (seq piles)
+                (nth i)
+                val)))
+
 
 (defn max-pile-x
   "Given the piles map from the state, return the highest x-coordinate for a
@@ -413,18 +422,15 @@
           all-piles (mapcat vals rows)
           row-ys (keys piles)
           row-count (count piles)
-          last-row-height (row-height (get piles (last row-ys)))
-          row-spacings (conj (vec (row-spacings row-ys))
-                             last-row-height)
+          row-spacings (vec (row-spacings row-ys))
           [before-and-on after] (split-with #(<= % y) row-ys)
           first-row-y half-gutter
           row-y (or (last before-and-on) first-row-y)
           curr-row-height (cond
-                            (= row-count 1) (first row-spacings)
-                            (< y first-row-y) (first row-spacings)
-                            (not (empty? after)) (nth row-spacings
-                                                      (dec (count before-and-on)))
-                            :otherwise last-row-height)
+                            (= row-count 1) (row-i-height piles 0)
+                            (< y first-row-y) (row-i-height piles 0)
+                            (not (empty? after)) (nth row-spacings (dec (count before-and-on)))
+                            :otherwise (row-height (get piles (last row-ys))))
           candidates (for [cx [left-col right-col]
                            cy [row-y (+ row-y curr-row-height)]]
                        [cx cy])]
