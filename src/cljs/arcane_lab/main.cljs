@@ -597,8 +597,8 @@
         :else state))))
 
 (defn add-max-pile-x
-  [{:keys [piles] :as state}]
-  (assoc state :max-pile-x (max-pile-x piles)))
+  [state]
+  (assoc state :max-pile-x (max-pile-x (:piles state))))
 
 (defn stop-selection-or-drag-action
   [_]
@@ -731,9 +731,9 @@
                             :width card-width, :height card-height})))))
 
 (defn render-pile
-  [{cards :cards}]
+  [pile]
   (apply dom/div #js {:className "pile"}
-         (map render-card cards)))
+         (map render-card (:cards pile))))
 
 (defn render-drag
   [drag piles]
