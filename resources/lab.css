@@ -122,8 +122,10 @@ h1, h2, h3, h4, p {
 }
 
 #hud {
-  background: rgba(255,255,255, 0.6);
+  position: fixed;
   z-index: 10;
+
+  background: rgba(255,255,255, 0.6);
 }
 
 #footer {

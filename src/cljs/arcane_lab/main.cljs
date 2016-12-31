@@ -788,7 +788,7 @@
                         (update-in state [:drag :cards] (partial map :id))
                         state)
         no-piles (dissoc w-dragged-ids :piles)]
-    (dom/div #js {:id "hud", :style #js {:position "relative"}}
+    (dom/div #js {:id "hud"}
              (dom/pre nil
                       (dom/b nil
                              (.stringify js/JSON
