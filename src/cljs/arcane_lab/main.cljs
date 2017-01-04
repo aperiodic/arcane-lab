@@ -166,6 +166,12 @@
     (let [covered (dec (count cards))]
       (+ card-height (* pile-stride covered)))))
 
+(defn pile-card-count
+  [pile]
+  (if-not pile
+    0
+    (count (:cards pile))))
+
 (defn within-pile?
   [pile x y]
   (let [{l :x, t :y} pile
@@ -237,6 +243,9 @@
                 (nth i)
                 val)))
 
+(defn row-card-height
+  [row]
+  (apply max (map pile-card-count (vals row))))
 
 (defn max-pile-x
   "Given the piles map from the state, return the highest x-coordinate for a
