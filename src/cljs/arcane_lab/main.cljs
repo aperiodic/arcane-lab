@@ -141,6 +141,11 @@
        (<= y bottom) ; the point is above the bottom of the box
        (>= y top)))  ; the point is below the top of the box
 
+(defn between?
+  [lo hi x]
+  (and (>= x lo)
+       (<= x hi)))
+
 (defn selection-edges
   "Given a selection, return the left & right x values and the top & bottom
   y values, in a vector in that order ([l r t b])."
