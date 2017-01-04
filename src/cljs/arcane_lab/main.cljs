@@ -402,6 +402,21 @@
               piles'
               (map vector ys ys')))))
 
+(defn selection-check-boundaries
+  [piles]
+  (let [x-max (+ (max-pile-x piles) card-width 1)
+        x-stride (+ card-width gutter)]
+    {:vertical (interleave (range half-gutter x-max x-stride)
+                           (range (+ half-gutter card-width) x-max x-stride))
+     :horizontal (concat (for [[row-y row] piles
+                               i (range 0 (row-card-height row))]
+                           (+ row-y (* i pile-stride)))
+                         (distinct
+                           (for [[row-y row] piles
+                                 pile (vals row)]
+                             (+ row-y (pile-height pile)))))}))
+
+
 ;;
 ;; Dragging
 ;;
@@ -616,6 +631,21 @@
           (apply-selection selection)
           (assoc :selection selection))))))
 
+(defn update-selection
+  [state x' y']
+  (let [[x y] (get-in state [:selection :stop])
+        x0 (if (< x x') x x') ;; written in this verbose manner in order to
+        x1 (if (< x x') x' x) ;; generate as little garbage as possible
+        y0 (if (< y y') y y')
+        y1 (if (< y y') y' y)
+        {xs :vertical, ys :horizontal} (:selection-triggers state)
+        update? (or (some #(between? x0 x1 %) xs)
+                    (some #(between? y0 y1 %) ys))
+        state' (assoc-in state [:selection :stop] [x' y'])]
+    (if-not update?
+      state'
+      (apply-selection state' (:selection state')))))
+
 (defn update-selection-or-drag-destination-action
   [pos]
   (fn [{:keys [drag selection piles] :as state}]
@@ -627,12 +657,16 @@
       (cond
         drag (let [[px py] (drag-pile-pos x y)]
                (assoc state :drag (make-pile (:cards drag) px py)))
-        selection (update-in state [:selection] assoc :stop [x y])
+        selection (update-selection state x y)
         :else state))))
 
 (defn add-max-pile-x
   [state]
   (assoc state :max-pile-x (max-pile-x (:piles state))))
+
+(defn add-selection-triggers
+  [state]
+  (assoc state :selection-triggers (selection-check-boundaries (:piles state))))
 
 (defn stop-selection-or-drag-action
   [_]
@@ -651,6 +685,7 @@
                (update-in [:piles] rejigger-rows)
                (dissoc :drag)
                add-max-pile-x
+               add-selection-triggers
                (add-to-history-if-new!)))
       :otherwise state)))
 
@@ -728,9 +763,7 @@
 (defn render-selection
   [state]
   (if-let [selection (:selection state)]
-    (let [{:keys [piles-after-selection]} state
-          selected-count (->> piles-after-selection
-                           (mapcat :cards)
+    (let [selected-count (->> (state->cards state)
                            (filter :selected?)
                            count)
           [ox oy] (:stop selection)
@@ -813,12 +846,12 @@
   (let [w-dragged-ids (if (contains? state :drag)
                         (update-in state [:drag :cards] (partial map :id))
                         state)
-        no-piles (dissoc w-dragged-ids :piles)]
+        less-crap (dissoc w-dragged-ids :piles :selection-triggers)]
     (dom/div #js {:id "hud"}
              (dom/pre nil
                       (dom/b nil
                              (.stringify js/JSON
-                               (clj->js no-piles) nil 2))))))
+                               (clj->js less-crap) nil 2))))))
 
 (defn render-footer
   [state]
@@ -839,17 +872,13 @@
 
 (defn render-state
   [state]
-  (let [{selection :selection} state
-        piles (->> (-> state :piles vals)
-                (mapcat vals)
-                (map (partial pile-after-selection selection)))]
-    (dom/div #js {:id "dom-root"}
-             (apply dom/div {:id "piles"} (map render-pile piles))
-             (render-drag (:drag state) (:piles state))
-             (render-selection (assoc state :piles-after-selection piles))
-             (render-dfc state)
-             (render-footer state)
-             (preload-dfcs state))))
+  (dom/div #js {:id "dom-root"}
+           (apply dom/div {:id "piles"} (map render-pile (state->piles state)))
+           (render-drag (:drag state) (:piles state))
+           (render-selection state)
+           (render-dfc state)
+           (render-footer state)
+           (preload-dfcs state)))
 
 (defn- navigate!
   "Redirect to the given sealed format."
@@ -928,9 +957,11 @@
 
 (defn start-app-from-state!
   [init-state]
-  (let [init-state (add-max-pile-x init-state)
-        state-atom (sig/pipe-to-atom (state-signal init-state))]
-    (swap! !fate update-in [:past] (fnil conj ()) init-state)
+  (let [state (-> init-state
+                add-max-pile-x
+                add-selection-triggers)
+        state-atom (sig/pipe-to-atom (state-signal state))]
+    (swap! !fate update-in [:past] (fnil conj ()) state)
     (start-om state-atom)))
 
 (def blank-state {:piles (sorted-map)})
