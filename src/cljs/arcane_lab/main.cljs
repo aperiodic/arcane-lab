@@ -192,6 +192,12 @@
          repositioned (map-indexed reposition cards)]
      {:cards repositioned, :x x, :y y})))
 
+(defn state->piles
+  [state]
+  (->> (:piles state)
+    vals
+    (mapcat vals)))
+
 (defn state->cards
   "Given a state with :piles, return all the cards in all the piles."
   [state]
@@ -550,7 +556,7 @@
   [pos]
   (fn [{:keys [piles] :as state}]
     (let [piles-in-selection (filter #(some :selected? (:cards %))
-                                     (mapcat vals (vals piles)))
+                                     (state->piles state))
           [x y] pos
           extant-selection-drag? (loop [ps piles-in-selection]
                                    (if-let [{l :x, pt :y, cards :cards, :as p} (first ps)]
@@ -598,7 +604,7 @@
               (assoc-in state [:piles y x] pile'))
             state
             (map (partial pile-after-selection selection)
-                 (mapcat vals (vals piles)))))))
+                 (state->piles state))))))
 
 (defn start-selection-if-not-dragging-action
   [pos]
