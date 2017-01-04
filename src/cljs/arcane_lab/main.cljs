@@ -136,10 +136,10 @@
   "Returns true if the point at (x,y) is within the box defined by left, right,
   top, and bottom."
   [left right top bottom x y]
-  (and (not (> x right))  ; the point is not to the right of the box
-       (not (< x left))   ; the point is not to the left of the box
-       (not (> y bottom)) ; the point is not below the box
-       (not (< y top))))  ; the point is not above the box
+  (and (<= x right)  ; the point is to the left of the box's right edge
+       (>= x left)   ; the point is to the right of the box's left edge
+       (<= y bottom) ; the point is above the bottom of the box
+       (>= y top)))  ; the point is below the top of the box
 
 (defn selection-edges
   "Given a selection, return the left & right x values and the top & bottom
