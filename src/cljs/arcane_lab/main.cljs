@@ -416,7 +416,6 @@
                                  pile (vals row)]
                              (+ row-y (pile-height pile)))))}))
 
-
 ;;
 ;; Dragging
 ;;
@@ -443,6 +442,20 @@
      (let [dx (- x (+ cx half-card-width))
            dy (- y (+ cy half-card-height))]
        (+ (* dx dx) (* dy dy))))))
+
+(defn drop-zones
+  [piles]
+  (let [x-lim (+ (max-pile-x piles) (* 2 pile-spacing))
+        row-ys (keys piles)
+        next-row-ys (-> (drop 1 row-ys)
+                      (concat (list (+ (last row-ys) card-height gutter))))]
+    {:vertical (range (+ card-width gutter) x-lim pile-spacing)
+     :horizontal (for [[y0 y1] (->> (interleave (for [[y row] piles]
+                                                  (+ y card-height))
+                                                next-row-ys)
+                                 (partition 2))]
+                   (-> (+ y0 y1)
+                     (/ 2)))}))
 
 (defn drag-target
   [drag piles]
@@ -583,7 +596,9 @@
                                          (recur (next ps))))
                                      ;; else (no more piles)
                                      false))
-          card-under-mouse (card-under piles x y)]
+          card-under-mouse (card-under piles x y)
+          [dx dy] (drag-pile-pos x y)
+          drag-target (drag-target {:x dx, :y dy} piles)]
 
       (cond
         extant-selection-drag?
@@ -597,7 +612,8 @@
                             (add-pile state (make-pile cards' px py)))))
                       state
                       piles-in-selection)
-            (assoc :drag (make-pile selected-cards drag-pile-x drag-pile-y))))
+            (assoc :drag (make-pile selected-cards drag-pile-x drag-pile-y)
+                   :drag-target drag-target)))
 
         card-under-mouse ;; make drag pile w/only current card
         (let [[dpx dpy] (drag-pile-pos x y)
@@ -606,7 +622,8 @@
           (-> (if (empty? pile-cards')
                 (remove-pile state px py)
                 (add-pile state (make-pile pile-cards' px py)))
-            (assoc :drag (make-pile [card-under-mouse] dpx dpy))))
+            (assoc :drag (make-pile [card-under-mouse] dpx dpy)
+                   :drag-target drag-target)))
 
         :otherwise (dissoc state :drag)))))
 
@@ -646,6 +663,25 @@
       state'
       (apply-selection state' (:selection state')))))
 
+(defn update-drag
+  [state x' y']
+  (let [dx (get-in state [:drag :x])
+        dy (get-in state [:drag :y])
+        [x y] (mouse-pos dx dy)
+        x0 (if (< x x') x x') ;; written in this verbose manner in order to
+        x1 (if (< x x') x' x) ;; generate as little garbage as possible
+        y0 (if (< y y') y y')
+        y1 (if (< y y') y' y)
+        {xs :vertical, ys :horizontal} (:drag-triggers state)
+        update? (or (some #(between? x0 x1 %) xs)
+                    (some #(between? y0 y1 %) ys))
+        state' (let [[px py] (drag-pile-pos x' y')
+                     drag-pile (make-pile (get-in state [:drag :cards]) px py)]
+                 (assoc state :drag drag-pile))]
+    (if-not update?
+      state'
+      (assoc state' :drag-target (drag-target (:drag state') (:piles state'))))))
+
 (defn update-selection-or-drag-destination-action
   [pos]
   (fn [{:keys [drag selection piles] :as state}]
@@ -655,8 +691,7 @@
           x (min max-x (nth pos 0))
           y (nth pos 1)]
       (cond
-        drag (let [[px py] (drag-pile-pos x y)]
-               (assoc state :drag (make-pile (:cards drag) px py)))
+        drag (update-drag state x y)
         selection (update-selection state x y)
         :else state))))
 
@@ -667,6 +702,10 @@
 (defn add-selection-triggers
   [state]
   (assoc state :selection-triggers (selection-check-boundaries (:piles state))))
+
+(defn add-drop-zones
+  [state]
+  (assoc state :drag-triggers (drop-zones (:piles state))))
 
 (defn stop-selection-or-drag-action
   [_]
@@ -683,10 +722,11 @@
              (-> state
                (add-pile new-pile)
                (update-in [:piles] rejigger-rows)
-               (dissoc :drag)
+               (dissoc :drag :drag-target)
                add-max-pile-x
                add-selection-triggers
-               (add-to-history-if-new!)))
+               add-drop-zones
+               add-to-history-if-new!))
       :otherwise state)))
 
 (defn rewind-state-action
@@ -803,9 +843,9 @@
          (map render-card (:cards pile))))
 
 (defn render-drag
-  [drag piles]
-  (if drag
-    (let [[tx ty] (drag-target drag piles)]
+  [state]
+  (if-let [drag (:drag state)]
+    (let [[tx ty] (:drag-target state)]
       (dom/div nil
                (dom/div #js {:id "drag-target"
                              :className "ghost"
@@ -874,7 +914,7 @@
   [state]
   (dom/div #js {:id "dom-root"}
            (apply dom/div {:id "piles"} (map render-pile (state->piles state)))
-           (render-drag (:drag state) (:piles state))
+           (render-drag state)
            (render-selection state)
            (render-dfc state)
            (render-footer state)
@@ -959,7 +999,8 @@
   [init-state]
   (let [state (-> init-state
                 add-max-pile-x
-                add-selection-triggers)
+                add-selection-triggers
+                add-drop-zones)
         state-atom (sig/pipe-to-atom (state-signal state))]
     (swap! !fate update-in [:past] (fnil conj ()) state)
     (start-om state-atom)))
