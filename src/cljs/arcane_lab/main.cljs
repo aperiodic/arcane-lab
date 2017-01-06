@@ -150,9 +150,13 @@
   "Given a selection, return the left & right x values and the top & bottom
   y values, in a vector in that order ([l r t b])."
   [selection]
-  (let [{[x1 y1] :start, [x2 y2] :stop} selection]
-    (vec (concat (sort [x1 x2])
-                 (sort [y1 y2])))))
+  (let [{[x1 y1] :start, [x2 y2] :stop} selection
+        x-asc? (<= x1 x2)
+        y-asc? (<= y1 y2)]
+    (vector (if x-asc? x1 x2)
+            (if x-asc? x2 x1)
+            (if y-asc? y1 y2)
+            (if y-asc? y2 y1))))
 
 ;;
 ;; Piles
@@ -831,8 +835,7 @@
   ([card dx dy]
    (let [{:keys [name img-src x y selected?]} card]
      (dom/div #js {:className (str "card" (if selected? " selected"))
-                   :style #js {:position "absolute"
-                               :left (+ x dx)
+                   :style #js {:left (+ x dx)
                                :top (+ y dy)}}
               (dom/img #js {:src img-src, :title name
                             :width card-width, :height card-height})))))
@@ -872,9 +875,8 @@
 
 (defn preload-dfcs
   [state]
-  (let [dfc-cards (->> (concat (filter :dfc (state->cards state))
-                               (filter :dfc (get-in state [:drag :cards])))
-                    (sort-by :name))]
+  (let [dfc-cards (concat (filter :dfc (state->cards state))
+                          (filter :dfc (get-in state [:drag :cards])))]
     (apply dom/div #js {:className "dfc-preloader"
                         :style #js {:display "none"}}
            (for [{:keys [img-src]} (map :reverse dfc-cards)]

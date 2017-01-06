@@ -114,6 +114,7 @@ h1, h2, h3, h4, p {
 }
 
 .card {
+  position: absolute;
   z-index: 3;
 }
 
