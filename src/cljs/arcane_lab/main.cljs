@@ -209,6 +209,13 @@
     (mapcat vals)
     (mapcat :cards)))
 
+(defn map-piles
+  [f state]
+  (reduce (fn [state {x :x, y :y, :as pile'}]
+            (assoc-in state [:piles y x] pile'))
+          state
+          (map f (state->piles state))))
+
 (defn get-pile
   [state x y]
   (get-in state [:piles y x]))
@@ -640,11 +647,7 @@
   (let [{piles :piles} state]
     (if-not selection
       state
-      (reduce (fn [state {x :x, y :y, :as pile'}]
-              (assoc-in state [:piles y x] pile'))
-            state
-            (map (partial pile-after-selection selection)
-                 (state->piles state))))))
+      (map-piles (partial pile-after-selection selection) state))))
 
 (defn start-selection-if-not-dragging-action
   [pos]
