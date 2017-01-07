@@ -209,6 +209,10 @@
     (mapcat vals)
     (mapcat :cards)))
 
+(defn get-pile
+  [state x y]
+  (get-in state [:piles y x]))
+
 (defn add-pile
   [state pile]
   (let [{:keys [x y]} pile]
@@ -719,7 +723,7 @@
                   (apply-selection selection)
                   (dissoc :selection))
       drag (let [[tx ty] (drag-target drag piles)
-                 new-pile (if-let [{old-cards :cards} (get-in piles [ty tx])]
+                 new-pile (if-let [{old-cards :cards} (get-pile state tx ty)]
                             (make-pile (concat old-cards (:cards drag))
                                        tx, ty)
                             (make-pile (:cards drag) tx ty))]
