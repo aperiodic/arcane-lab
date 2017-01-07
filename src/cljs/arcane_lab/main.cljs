@@ -1005,12 +1005,17 @@
      all-sets
      {:target (.getElementById js/document (name target-id))})))
 
+(defn migrate-state
+  [possibly-old-state]
+  (let [w-cached-vals (-> possibly-old-state
+                        add-max-pile-x
+                        add-selection-triggers
+                        add-drop-zones)]
+    (map-piles #(make-pile (:cards %) (:x %) (:y %)) w-cached-vals)))
+
 (defn start-app-from-state!
   [init-state]
-  (let [state (-> init-state
-                add-max-pile-x
-                add-selection-triggers
-                add-drop-zones)
+  (let [state (migrate-state init-state)
         state-atom (sig/pipe-to-atom (state-signal state))]
     (swap! !fate update-in [:past] (fnil conj ()) state)
     (start-om state-atom)))
