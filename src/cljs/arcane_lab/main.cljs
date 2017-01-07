@@ -841,17 +841,18 @@
 (defn render-card
   ([card] (render-card card 0 0))
   ([card dx dy]
-   (let [{:keys [name img-src x y selected?]} card]
+   (let [{:keys [name id img-src x y selected?]} card]
      (dom/div #js {:className (str "card" (if selected? " selected"))
                    :style #js {:left (+ x dx)
-                               :top (+ y dy)}}
+                               :top (+ y dy)}
+                   :key id}
               (dom/img #js {:src img-src, :title name
                             :width card-width, :height card-height})))))
 
 (defn render-pile
   [pile]
-  (apply dom/div #js {:className "pile"}
-         (map render-card (:cards pile))))
+  (dom/div #js {:className "pile"}
+           (map #(render-card % 0 0) (:cards pile))))
 
 (defn render-drag
   [state]
@@ -887,8 +888,8 @@
   [state]
   (let [dfc-cards (concat (filter :dfc (state->cards state))
                           (filter :dfc (get-in state [:drag :cards])))]
-    (apply dom/div #js {:className "dfc-preloader"
-                        :style #js {:display "none"}}
+    (dom/div #js {:className "dfc-preloader"
+                  :style #js {:display "none"}}
            (for [{:keys [img-src]} (map :reverse dfc-cards)]
              (dom/img #js {:src img-src
                            :style #js {:display "block"}})))))
@@ -959,9 +960,10 @@
                  (for [{:as mtg-set
                         :keys [code sealed-format]} (->> options
                                                       (sort-by :release-date)
-                                                      reverse)]
+                                                      reverse)
+                       :let [id (str "select-set-option-" code)]]
                    (dom/option #js {:value sealed-format
-                                    :id (str "select-set-option-" code)}
+                                    :id id, :key id}
                                (:name mtg-set))))))))
 
 
