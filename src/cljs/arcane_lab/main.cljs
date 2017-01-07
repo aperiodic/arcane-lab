@@ -163,12 +163,12 @@
 ;;
 
 (defn pile-height
-  [{:keys [cards] :as pile}]
-  (if-not pile
-    0
-    ;; by induction, each card besides the first is covered by the previous
-    (let [covered (dec (count cards))]
-      (+ card-height (* pile-stride covered)))))
+  [{:keys [cards height] :as pile}]
+  (cond
+    (not pile) 0
+    height height
+    :else (let [covered (dec (count cards))] ;; every card but last is covered
+            (+ card-height (* pile-stride covered)))))
 
 (defn pile-card-count
   [pile]
@@ -194,7 +194,8 @@
   ([cards x y]
    (let [reposition (fn [i card] (assoc card :x x, :y (+ y (* i pile-stride))))
          repositioned (map-indexed reposition cards)]
-     {:cards repositioned, :x x, :y y})))
+     {:cards (vec repositioned), :x x, :y y
+      :height (pile-height {:cards cards})})))
 
 (defn state->piles
   [state]
