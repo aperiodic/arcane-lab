@@ -856,7 +856,9 @@
 (defn render-drag
   [state]
   (if-let [drag (:drag state)]
-    (let [[tx ty] (:drag-target state)]
+    (let [[tx ty] (:drag-target state)
+          target-pile (get-pile state tx ty)
+          target-height (if target-pile (pile-height target-pile) card-height)]
       (dom/div nil
                (dom/div #js {:id "drag-target"
                              :className "ghost"
@@ -864,7 +866,7 @@
                                          :left tx
                                          :top ty
                                          :width card-width
-                                         :height card-height}})
+                                         :height target-height}})
                (apply dom/div #js {:id "drag" :className "pile"}
                       (map render-card (:cards drag)))))))
 
