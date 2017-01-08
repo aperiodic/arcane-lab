@@ -908,15 +908,16 @@
 
 (defn render-hud
   [state]
-  (let [w-dragged-ids (if (contains? state :drag)
-                        (update-in state [:drag :cards] (partial map :id))
-                        state)
-        less-crap (dissoc w-dragged-ids :piles :selection-triggers)]
+  (let [trimmed-state (-> (if (contains? state :drag)
+                            (update-in state [:drag :cards] (partial map (comp str :id)))
+                            state)
+                        (update :dfcs (partial map (comp str :id)))
+                        (dissoc :piles :selection-triggers))]
     (dom/div #js {:id "hud"}
              (dom/pre nil
                       (dom/b nil
                              (.stringify js/JSON
-                               (clj->js less-crap) nil 2))))))
+                               (clj->js trimmed-state) nil 2))))))
 
 (defn render-footer
   [state]
