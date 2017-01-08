@@ -502,6 +502,23 @@
       (first (sort-by (distance-squared-to x y) candidates)))))
 
 ;;
+;; Cached State Properties
+;;
+
+
+(defn add-max-pile-x
+  [state]
+  (assoc state :max-pile-x (max-pile-x (:piles state))))
+
+(defn add-selection-triggers
+  [state]
+  (assoc state :selection-triggers (selection-check-boundaries (:piles state))))
+
+(defn add-drop-zones
+  [state]
+  (assoc state :drag-triggers (drop-zones (:piles state))))
+
+;;
 ;; Saving & Loading State
 ;;
 
@@ -707,18 +724,6 @@
         drag (update-drag state x y)
         selection (update-selection state x y)
         :else state))))
-
-(defn add-max-pile-x
-  [state]
-  (assoc state :max-pile-x (max-pile-x (:piles state))))
-
-(defn add-selection-triggers
-  [state]
-  (assoc state :selection-triggers (selection-check-boundaries (:piles state))))
-
-(defn add-drop-zones
-  [state]
-  (assoc state :drag-triggers (drop-zones (:piles state))))
 
 (defn stop-selection-or-drag-action
   [_]
