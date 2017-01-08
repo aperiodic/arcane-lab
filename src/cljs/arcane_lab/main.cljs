@@ -204,7 +204,8 @@
     (mapcat vals)))
 
 (defn state->cards
-  "Given a state with :piles, return all the cards in all the piles."
+  "Given a state with :piles, return all the cards in all the piles (does not
+  include dragged cards)."
   [state]
   (->> (vals (:piles state))
     (mapcat vals)
