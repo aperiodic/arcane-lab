@@ -150,6 +150,10 @@ h1, h2, h3, h4, p {
   margin-left: 1em;
 }
 
+.dfc-preloader {
+  display: none;
+}
+
 /* Weird Settings */
 
 /* turn off element selection/highliting */

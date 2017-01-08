@@ -197,6 +197,11 @@
      {:cards (vec repositioned), :x x, :y y
       :height (pile-height {:cards cards})})))
 
+(defn make-drag-pile
+  [cards drag-x drag-y]
+  (-> (make-pile cards drag-x drag-y)
+    (assoc :dfcs? (boolean (some :dfc cards)))))
+
 (defn state->piles
   [state]
   (->> (:piles state)
@@ -518,6 +523,10 @@
   [state]
   (assoc state :drag-triggers (drop-zones (:piles state))))
 
+(defn add-dfcs
+  [state]
+  (assoc state :dfcs (filter :dfc (state->cards state))))
+
 ;;
 ;; Saving & Loading State
 ;;
@@ -638,7 +647,8 @@
         extant-selection-drag?
         (let [[drag-pile-x drag-pile-y] (drag-pile-pos x y)
               selected-cards (filter :selected?
-                                     (mapcat :cards piles-in-selection))]
+                                     (mapcat :cards piles-in-selection))
+              drag-pile (make-drag-pile selected-cards drag-pile-x drag-pile-y)]
           (-> (reduce (fn [state {px :x, py :y, cards :cards}]
                         (let [cards' (remove :selected? cards)]
                           (if (empty? cards')
@@ -646,7 +656,7 @@
                             (add-pile state (make-pile cards' px py)))))
                       state
                       piles-in-selection)
-            (assoc :drag (make-pile selected-cards drag-pile-x drag-pile-y)
+            (assoc :drag drag-pile
                    :drag-target drag-target)))
 
         card-under-mouse ;; make drag pile w/only current card
@@ -656,7 +666,7 @@
           (-> (if (empty? pile-cards')
                 (remove-pile state px py)
                 (add-pile state (make-pile pile-cards' px py)))
-            (assoc :drag (make-pile [card-under-mouse] dpx dpy)
+            (assoc :drag (make-drag-pile [card-under-mouse] dpx dpy)
                    :drag-target drag-target)))
 
         :otherwise (dissoc state :drag)))))
@@ -706,7 +716,7 @@
         update? (or (some #(between? x0 x1 %) xs)
                     (some #(between? y0 y1 %) ys))
         state' (let [[px py] (drag-pile-pos x' y')
-                     drag-pile (make-pile (get-in state [:drag :cards]) px py)]
+                     drag-pile (make-drag-pile (get-in state [:drag :cards]) px py)]
                  (assoc state :drag drag-pile))]
     (if-not update?
       state'
@@ -879,26 +889,22 @@
 
 (defn render-dfc
   [state]
-  (let [drag-cards (get-in state [:drag :cards] [])
-        {dx :x dy :y} (:drag state)
-        other-sides (map :reverse drag-cards)]
-    (if (seq (filter :dfc drag-cards))
+  (if (get-in state [:drag :dfcs?])
+    (let [{dx :x dy :y} (:drag state)]
       (apply dom/div #js {:className "backsides-holder"
                           :style #js {:position "absolute"
                                       :left (+ dx card-width), :top dy}}
              (map-indexed (fn [i card]
                             (if card (render-card card 0 (* i pile-stride))))
-                          other-sides)))))
+                          (map :reverse (get-in state [:drag :cards])))))))
 
 (defn preload-dfcs
   [state]
-  (let [dfc-cards (concat (filter :dfc (state->cards state))
-                          (filter :dfc (get-in state [:drag :cards])))]
-    (dom/div #js {:className "dfc-preloader"
-                  :style #js {:display "none"}}
-           (for [{:keys [img-src]} (map :reverse dfc-cards)]
-             (dom/img #js {:src img-src
-                           :style #js {:display "block"}})))))
+  (if-let [dfcs (seq (:dfcs state))]
+    (dom/div #js {:className "dfc-preloader"}
+             (for [{:keys [img-src]} (map :reverse dfcs)]
+               (dom/img #js {:src img-src
+                             :style #js {:display "block"}})))))
 
 (defn render-hud
   [state]
@@ -1020,7 +1026,8 @@
   (let [w-cached-vals (-> possibly-old-state
                         add-max-pile-x
                         add-selection-triggers
-                        add-drop-zones)]
+                        add-drop-zones
+                        add-dfcs)]
     (map-piles #(make-pile (:cards %) (:x %) (:y %)) w-cached-vals)))
 
 (defn start-app-from-state!
