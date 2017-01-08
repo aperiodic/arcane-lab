@@ -593,8 +593,8 @@
   "Start a drag if:
     * there are selected cards and the click is on a pile with selected cards
       (but not above the selected cards in that pile);
-    * there are no selected cards but the click is on some card (start dragging
-      just that card).
+    * there the click is on some unselected card (start dragging
+      just that card, regardless of whether or not there's a selection).
   Returns the state with or without a newly-started drag, depending on if the
   above criteria are satisfied. "
   [pos]
