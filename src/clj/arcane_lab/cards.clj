@@ -229,21 +229,21 @@
 (def all-sets
   (let [raw-sets (-> (io/resource "cards-by-set.json")
                    slurp
-                   (json/decode true))]
-    (-> (into {} (for [[code set] raw-sets
-                       :when (and (not= (:type set) "promo")
-                                  (not (contains? ignored-sets code)))]
-                   [code
-                    (cond-> set
-                      :always (update :cards (partial map process-card))
-                      :always (set/rename-keys {:releaseDate :release-date})
-                      (:booster set) (assoc :sealed-format
-                                            (get sets/sealed-formats
-                                                 code
-                                                 (str "6" (name code)))))]))
-      ;; EMN comes from its own data file because the MtGJSON AllSets version
-      ;; has bad data from Gatherer that they refuse to fix
-      (assoc :EMN (update (data/eldritch-moon) :cards (partial map process-card))))))
+                   (json/decode true)
+                   ;; EMN comes from its own data file because the MtGJSON
+                   ;; version has bad data from Gatherer that they refuse to fix
+                   (assoc :EMN (data/eldritch-moon)))]
+    (into {} (for [[code set] raw-sets
+                   :when (and (not= (:type set) "promo")
+                              (not (contains? ignored-sets code)))]
+               [code
+                (cond-> set
+                  :always (update :cards (partial map process-card))
+                  :always (set/rename-keys {:releaseDate :release-date})
+                  (:booster set) (assoc :sealed-format
+                                        (get sets/sealed-formats
+                                             code
+                                             (str "6" (name code)))))]))))
 
 (def booster-sets
   (into {} (for [[code set] all-sets
