@@ -964,20 +964,20 @@
                           :name (str "Custom - " current-format)
                           :release-date "9999-99-99"}))]
      (dom/span #js {}
-     "Change Format: "
-     (dom/select #js {:className "om-selector"
-                      :name "set"
-                      :defaultValue (or current-format "6KLD")
-                      :onChange (fn [event]
-                                  (navigate! (-> event .-target .-value)))}
-                 (for [{:as mtg-set
-                        :keys [code sealed-format]} (->> options
-                                                      (sort-by :release-date)
-                                                      reverse)
-                       :let [id (str "select-set-option-" code)]]
-                   (dom/option #js {:value sealed-format
-                                    :id id, :key id}
-                               (:name mtg-set))))))))
+       "Change Format: "
+       (dom/select #js {:className "om-selector"
+                        :name "set"
+                        :defaultValue (or current-format "6KLD")
+                        :onChange (fn [event]
+                                    (navigate! (-> event .-target .-value)))}
+                   (for [{:as mtg-set
+                          :keys [code sealed-format]} (->> options
+                                                        (sort-by :release-date)
+                                                        reverse)
+                         :let [id (str "select-set-option-" code)]]
+                     (dom/option #js {:value sealed-format
+                                      :id id, :key id}
+                                 (:name mtg-set))))))))
 
 
 ;;
