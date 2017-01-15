@@ -1,7 +1,7 @@
 (ns arcane-lab.sets)
 
 (def sets-that-work
-  #{:KLD :EMN :SOI :OGW :BFZ :ORI :DTK :FRF :KTK :M15 :JOU :BNG :THS :M14 :DGM
+  #{:AER :KLD :EMN :SOI :OGW :BFZ :ORI :DTK :FRF :KTK :M15 :JOU :BNG :THS :M14 :DGM
     :GTC :RTR :M13 :AVR :DKA :ISD :M12 :NPH :MBS :SOM :M11 :ROE :WWK :ZEN :M10
     :ARB :CON :ALA :EVE :SHM :MOR :LRW (keyword "10E") :CSP :DIS :GPT :RAV
     (keyword "9ED") :SOK :BOK :CHK :UNH (keyword "5DN") :DST :MRD
@@ -17,7 +17,8 @@
   "A map between set code and sealed format for every set with a multi-set
   sealed format (i.e. small sets). All other sets' sealed formats are just
   6 packs of that set."
-  {:EMN "4EMN2SOI"
+  {:AER "4AER2KLD"
+   :EMN "4EMN2SOI"
    :OGW "4OGW2BFZ"
    :DTK "4DTK2FRF"
    :FRF "3FRF3KTK"
