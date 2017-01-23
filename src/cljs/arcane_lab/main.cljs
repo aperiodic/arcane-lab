@@ -1,10 +1,15 @@
 (ns arcane-lab.main
   (:require [ajax.core :as async-http]
             [ajax.edn :refer [edn-response-format]]
+            [arcane-lab.constants :as c]
+            [arcane-lab.drag :as drag]
+            [arcane-lab.geom :refer [within? between?]]
+            [arcane-lab.history :as history]
+            [arcane-lab.piles :as piles]
             [arcane-lab.sets :as sets]
+            [arcane-lab.state :as state]
             [cljs-uuid-utils.core :refer [make-random-uuid]]
             [cljs.core.async :as async]
-            [cljs.reader :as reader]
             [clojure.string :as str]
             [goog.events :as events]
             [jamesmacaulay.zelkova.signal :as sig]
@@ -18,31 +23,6 @@
 (def rand-uuid make-random-uuid)
 
 (enable-console-print!)
-
-;;
-;; Constants
-;;
-
-(def card-width 222)
-(def card-height 319)
-
-(def em 18)
-
-(def half-card-width (int (/ card-width 2)))
-(def half-card-height (int (/ card-height 2)))
-
-(def gutter (int (/ card-width 8)))
-(def half-gutter (int (/ gutter 2)))
-(def pile-stride (int (/ card-height 9.5)))
-(def pile-spacing (+ card-width gutter))
-
-(def mouse-y-offset 48)
-
-(def u-key-code 85)
-(def r-key-code 82)
-
-;; not technically constant, but will be for my lifetime
-(def ts-digits (-> (js/Date.) .getTime (/ 1000) int str count))
 
 ;;
 ;; Card Creation & Sorting
@@ -63,13 +43,9 @@
     (cond-> api-card
       identity add-img-src
       identity (assoc :id (rand-uuid)
-                      :x half-gutter, :y half-gutter
+                      :x c/half-gutter, :y c/half-gutter
                       :selected? false)
       reverse-side (update :reverse add-img-src))))
-
-(defn card-at
-  ([card [x y]] (card-at card x y))
-  ([card x y] (assoc card :x x :y y)))
 
 (def color-order [:white :blue :black :red :green :gold :colorless])
 
@@ -129,490 +105,6 @@
         g-cost? :green))))
 
 ;;
-;; Selection / Geometric Filtering
-;;
-
-(defn within?
-  "Returns true if the point at (x,y) is within the box defined by left, right,
-  top, and bottom."
-  [left right top bottom x y]
-  (and (<= x right)  ; the point is to the left of the box's right edge
-       (>= x left)   ; the point is to the right of the box's left edge
-       (<= y bottom) ; the point is above the bottom of the box
-       (>= y top)))  ; the point is below the top of the box
-
-(defn between?
-  [lo hi x]
-  (and (>= x lo)
-       (<= x hi)))
-
-(defn selection-edges
-  "Given a selection, return the left & right x values and the top & bottom
-  y values, in a vector in that order ([l r t b])."
-  [selection]
-  (let [{[x1 y1] :start, [x2 y2] :stop} selection
-        x-asc? (<= x1 x2)
-        y-asc? (<= y1 y2)]
-    (vector (if x-asc? x1 x2)
-            (if x-asc? x2 x1)
-            (if y-asc? y1 y2)
-            (if y-asc? y2 y1))))
-
-;;
-;; Piles
-;;
-
-(defn pile-height
-  [{:keys [cards height] :as pile}]
-  (cond
-    (not pile) 0
-    height height
-    :else (let [covered (dec (count cards))] ;; every card but last is covered
-            (+ card-height (* pile-stride covered)))))
-
-(defn pile-card-count
-  [pile]
-  (if-not pile
-    0
-    (count (:cards pile))))
-
-(defn within-pile?
-  [pile x y]
-  (let [{l :x, t :y} pile
-        r (+ l card-width)
-        b (+ t (pile-height pile))]
-    (within? l r t b x y)))
-
-(defn x-of-column-indexed
-  [n]
-  (+ (* n pile-spacing) half-gutter))
-
-(defn make-pile
-  ([cards] (make-pile cards
-                      (-> (map :x cards) sort first)
-                      (-> (map :y cards) sort first)))
-  ([cards x y]
-   (let [reposition (fn [i card] (assoc card :x x, :y (+ y (* i pile-stride))))
-         repositioned (map-indexed reposition cards)]
-     {:cards (vec repositioned), :x x, :y y
-      :height (pile-height {:cards cards})})))
-
-(defn make-drag-pile
-  [cards drag-x drag-y]
-  (-> (make-pile cards drag-x drag-y)
-    (assoc :dfcs? (boolean (some :dfc cards)))))
-
-(defn state->piles
-  [state]
-  (->> (:piles state)
-    vals
-    (mapcat vals)))
-
-(defn state->cards
-  "Given a state with :piles, return all the cards in all the piles (does not
-  include dragged cards)."
-  [state]
-  (->> (vals (:piles state))
-    (mapcat vals)
-    (mapcat :cards)))
-
-(defn map-piles
-  [f state]
-  (reduce (fn [state {x :x, y :y, :as pile'}]
-            (assoc-in state [:piles y x] pile'))
-          state
-          (map f (state->piles state))))
-
-(defn get-pile
-  [state x y]
-  (get-in state [:piles y x]))
-
-(defn add-pile
-  [state pile]
-  (let [{:keys [x y]} pile]
-    (-> state
-       (update-in [:piles y] (fnil identity (sorted-map)))
-       (assoc-in [:piles y x] pile))))
-
-(defn remove-pile
-  [state x y]
-  (let [row (get-in state [:piles y])]
-    (if (and (contains? row x) (= (count row) 1))
-      (update-in state [:piles] dissoc y)
-      (update-in state [:piles y] dissoc x))))
-
-(defn pile-selected?
-  [edges pile]
-  (and (boolean edges)
-       (let [[l r t b] edges
-             {x :x, y :y} pile
-             height (pile-height pile)]
-         (within? (- l card-width) r (- t height) b x y))))
-
-(defn row-spacings
-  "Given the row y locations in an ascending sequence, return a sequence of the
-  spacing between each row. Note that the returned sequence will have one less
-  element than the input sequence."
-  [row-ys]
-  (if (= count row-ys 1)
-    ()
-    (->> (reductions #(- %2 %1) row-ys)
-      (drop 1)
-      (map-indexed (fn [i x] (if (zero? i) (+ x half-gutter) x)))
-      (mapv #(- % half-gutter)))))
-
-(defn row-height
-  [row]
-  (+ gutter (apply max (map pile-height (vals row)))))
-
-(defn row-i-height
-  [piles i]
-  (row-height (-> (seq piles)
-                (nth i)
-                val)))
-
-(defn row-card-height
-  [row]
-  (apply max (map pile-card-count (vals row))))
-
-(defn max-pile-x
-  "Given the piles map from the state, return the highest x-coordinate for a
-  pile."
-  [piles]
-  (loop [rows (seq piles), x-max 0]
-    (if-let [[_ row] (first rows)]
-      (let [row-max (loop [xs (keys row)
-                           row-max 0]
-                      (if-let [x (first xs)]
-                        (if (> x row-max)
-                          (recur (next xs) x)
-                          (recur (next xs) row-max))
-                        row-max))]
-        (if (> row-max x-max)
-          (recur (next rows) row-max)
-          (recur (next rows) x-max)))
-      x-max)))
-
-(defn row-for
-  "Returns the last row whose y position is less than or equal to y's, or nil if
-  no such row exists."
-  [rows y]
-  (loop [rows (seq rows), row-hit nil]
-    (if-let [[row-y row] (first rows)]
-      (if (<= row-y y)
-        (recur (next rows) row)
-        row-hit)
-      row-hit)))
-
-(defn pile-for
-  "Returns the last pile in row whose x position is less than or equal to x's,
-  or nil no such pile exists in the row."
-  [row x]
-  (loop [piles (seq row), pile-hit nil]
-    (if-let [[pile-x pile] (first piles)]
-      (if (<= pile-x x)
-        (recur (next piles) pile)
-        pile-hit)
-      pile-hit)))
-
-(defn card-for
-  "Returns the last card in pile whose y position is less than y, or nil"
-  [pile y]
-  (loop [cards (:cards pile), card-hit nil]
-    (if-let [{card-y :y :as card} (first cards)]
-      (if (<= card-y y)
-        (recur (next cards) card)
-        card-hit)
-      card-hit)))
-
-(defn pile-under
-  [piles x y]
-  (if-let [row (row-for piles y)]
-    (if-let [pile (pile-for row x)]
-      (if (within-pile? pile x y)
-        pile))))
-
-(defn card-under
-  [piles x y]
-  (if-let [row (row-for piles y)]
-    (if-let [pile (pile-for row x)]
-      (if (within-pile? pile x y)
-        (card-for pile y)))))
-
-(defn covered-card-selected-by
-  "Given the edges of a selection, return a predicate that determines whether
-  a covered card (i.e. not the top card) in a pile that overlaps the selection
-  is selected by the selection."
-  [selection-edges]
-  (let [[_ _ t b] selection-edges]
-    (fn [{y :y}]
-      (and (<= y b)
-           (>= (+ y pile-stride) t)))))
-
-(defn top-card-selected-by
-  "Given the edges of a selection, return a predicate that determines whether
-  the top card in a pile that overlaps the selection is selected by the
-  selection."
-  [selection-edges]
-  (let [[_ _ t b] selection-edges]
-    (fn [{y :y}]
-      (and (<= y b)
-           (>= (+ y card-height) t)))))
-
-(defn pile-after-selection
-  "Given a selection and a pile returns a new pile with the cards that the
-  selection hits marked by setting their :selected? field to true."
-  [selection pile]
-  (if-not selection
-    pile
-    (let [[l r t b :as edges] (selection-edges selection)]
-      (if-not (pile-selected? edges pile)
-        (update-in pile [:cards] (partial mapv #(assoc % :selected? false)))
-        (let [covered-selected? (covered-card-selected-by edges)
-              top-selected? (top-card-selected-by edges)]
-          (assoc pile :cards (loop [cards (:cards pile), out []]
-                               (if-let [card (first cards)]
-                                 (let [next-cards (next cards)
-                                       top-card? (not next-cards)
-                                       selected? (if top-card?
-                                                   (top-selected? card)
-                                                   (covered-selected? card))
-                                       card' (assoc card :selected? selected?)]
-                                   (if top-card?
-                                     (conj out card')
-                                     (recur next-cards (conj out card'))))
-                                 ;; else (no more cards)
-                                 out))))))))
-
-(defn move-row
-  [piles y y']
-  (let [row (get piles y)
-        row' (reduce (fn [row {:keys [cards x]}]
-                       (assoc row x (make-pile cards x y')))
-                     row
-                     (vals row))]
-    (-> piles
-      (dissoc y)
-      (assoc y' row'))))
-
-(defn rejigger-rows
-  "After placing, the rows may be need to be moved up if the first row is now
-  empty, they may be too far apart if cards were moved from the strictly tallest
-  pile in a row, or they may be too close together if new cards were moved to
-  the tallest pile in a row. Given the piles map, return a new piles map with
-  all empty rows removed, the rest of the rows moved up accordingly, and the
-  rows exactly as far apart as necessary (i.e., the max pile height in each row
-  plus the gutter)."
-  [piles]
-  (let [old-ys (keys piles)
-        piles' (if (= (first old-ys) half-gutter)
-                 piles
-                 (let [first-spacing (- (first old-ys) half-gutter)]
-                   (reduce (fn [piles [y y']] (move-row piles y y'))
-                           piles
-                           (map vector
-                                old-ys
-                                (map #(- % first-spacing) old-ys)))))
-        ys (keys piles')
-        spacings (row-spacings ys)
-        spacings' (for [row (butlast (vals piles'))]
-                    (+ (apply max (map pile-height (vals row))) gutter))
-        ys' (reductions + half-gutter spacings')]
-    (if (= spacings spacings')
-      piles'
-      (reduce (fn [piles' [y y']] (move-row piles' y y'))
-              piles'
-              (map vector ys ys')))))
-
-(defn selection-check-boundaries
-  [piles]
-  (let [x-max (+ (max-pile-x piles) card-width 1)
-        x-stride (+ card-width gutter)]
-    {:vertical (interleave (range half-gutter x-max x-stride)
-                           (range (+ half-gutter card-width) x-max x-stride))
-     :horizontal (concat (for [[row-y row] piles
-                               i (range 0 (row-card-height row))]
-                           (+ row-y (* i pile-stride)))
-                         (distinct
-                           (for [[row-y row] piles
-                                 pile (vals row)]
-                             (+ row-y (pile-height pile)))))}))
-
-;;
-;; Dragging
-;;
-
-(def drag-x-offset (/ card-width 2))
-(def drag-y-offset (-> (* 0.4 card-height) int))
-
-(defn drag-pile-pos
-  "Given the mouse's x & y coordinates, return the position of the drag pile
-  such that the mouse is in the center."
-  [x y]
-  [(- x drag-x-offset)
-   (- y drag-y-offset)])
-
-(defn mouse-pos
-  [drag-x drag-y]
-  [(+ drag-x drag-x-offset)
-   (+ drag-y drag-y-offset)])
-
-(defn distance-squared-to
-  ([p] (let [{x :x y :y} p] (distance-squared-to x y)))
-  ([x y]
-   (fn [[cx cy]]
-     (let [dx (- x (+ cx half-card-width))
-           dy (- y (+ cy half-card-height))]
-       (+ (* dx dx) (* dy dy))))))
-
-(defn drop-zones
-  [piles]
-  (let [x-lim (+ (max-pile-x piles) (* 2 pile-spacing))
-        row-ys (keys piles)
-        next-row-ys (-> (drop 1 row-ys)
-                      (concat (list (+ (last row-ys) card-height gutter))))]
-    {:vertical (range (+ card-width gutter) x-lim pile-spacing)
-     :horizontal (for [[y0 y1] (->> (interleave (for [[y row] piles]
-                                                  (+ y card-height))
-                                                next-row-ys)
-                                 (partition 2))]
-                   (-> (+ y0 y1)
-                     (/ 2)))}))
-
-(defn drag-target
-  [drag piles]
-  ;; want to find the nearest drop position for the drag, which means:
-  ;;   nearest pile or place where new pile could be inserted
-  (if drag
-    (let [[x y] (mouse-pos (:x drag) (:y drag))
-          col-index (quot (- x half-gutter) pile-spacing)
-          left-col (-> (* col-index pile-spacing) (+ half-gutter))
-          right-col (-> (* (inc col-index) pile-spacing) (+ half-gutter))
-          rows (vals piles)
-          all-piles (mapcat vals rows)
-          row-ys (keys piles)
-          row-count (count piles)
-          row-spacings (vec (row-spacings row-ys))
-          [before-and-on after] (split-with #(<= % y) row-ys)
-          first-row-y half-gutter
-          row-y (or (last before-and-on) first-row-y)
-          curr-row-height (cond
-                            (= row-count 1) (row-i-height piles 0)
-                            (< y first-row-y) (row-i-height piles 0)
-                            (not (empty? after)) (nth row-spacings (dec (count before-and-on)))
-                            :otherwise (row-height (get piles (last row-ys))))
-          candidates (for [cx [left-col right-col]
-                           cy [row-y (+ row-y curr-row-height)]]
-                       [cx cy])]
-      (first (sort-by (distance-squared-to x y) candidates)))))
-
-;;
-;; Cached State Properties
-;;
-
-
-(defn add-max-pile-x
-  [state]
-  (assoc state :max-pile-x (max-pile-x (:piles state))))
-
-(defn add-selection-triggers
-  [state]
-  (assoc state :selection-triggers (selection-check-boundaries (:piles state))))
-
-(defn add-drop-zones
-  [state]
-  (assoc state :drag-triggers (drop-zones (:piles state))))
-
-(defn add-dfcs
-  [state]
-  (assoc state :dfcs (filter :dfc (state->cards state))))
-
-;;
-;; Saving & Loading State
-;;
-
-(defn state-key
-  [pack-spec seed]
-  (str pack-spec "|" seed))
-
-(defn path-components
-  [page-path]
-  (-> page-path
-    (str/replace #"^/" "")
-    (str/split #"/")))
-
-(defn save-state!
-  [state]
-  (let [page-path (-> js/document .-location .-pathname)
-        [ps seed] (path-components page-path)
-        pool-key (state-key ps seed)
-        ts (-> (js/Date.) .getTime (/ 1000) int str)
-        clean-state (-> state
-                      (dissoc :drag)
-                      (dissoc :selection))
-        serialized (str ts (pr-str clean-state))]
-    (try
-      (.setItem js/localStorage pool-key serialized)
-      (catch js/Error e
-        (if (= (.-name e) "QuotaExceededError")
-          (do
-            (.cleanStorage js/window)
-            (.setItem js/localStorage pool-key serialized))
-          (throw e))))))
-
-(defn load-state
-  [pack-spec seed]
-  (if-let [saved-state (.getItem js/localStorage (state-key pack-spec seed))]
-    (let [unsorted-state (reader/read-string (.substr saved-state ts-digits))]
-      {:piles (into (sorted-map) (for [[y row] (:piles unsorted-state)]
-                                   [y (into (sorted-map) (for [[x pile] row]
-                                                           [x pile]))]))})))
-
-;;
-;; State Manipulation
-;;
-
-(def !fate (atom {:past [], :future ()}))
-
-(defn add-to-history-if-new!
-  [state]
-  (swap! !fate (fn [{:keys [past] :as fate}]
-                 (if (= state (last past))
-                   fate
-                   (-> fate
-                     (update-in [:past] (fnil conj []) state)
-                     (assoc :future ())))))
-  (save-state! state)
-  state)
-
-(defn do-rewind
-  [fate]
-  (let [{:keys [past]} fate]
-    (if (<= (count past) 1)
-      fate
-      (-> fate
-        (update-in [:past] (comp vec butlast))
-        (update-in [:future] (fnil conj ()) (last past))))))
-
-(defn rewind!
-  [current]
-  (let [fate' (swap! !fate do-rewind)]
-    (-> fate' :past last)))
-
-(defn do-skip
-  [fate]
-  (if-let [new-present (-> fate :future first)]
-    (-> fate
-      (update-in [:future] rest)
-      (update-in [:past] (fnil conj []) new-present))
-    fate))
-
-(defn skip-ahead!
-  [current]
-  (let [fate' (swap! !fate do-skip)]
-    (-> fate' :past last)))
-
-;;
 ;; Signal Graph's State Actions
 ;;
 
@@ -627,56 +119,52 @@
   [pos]
   (fn [{:keys [piles] :as state}]
     (let [piles-in-selection (filter #(some :selected? (:cards %))
-                                     (state->piles state))
+                                     (state/state->piles state))
           [x y] pos
           extant-selection-drag? (loop [ps piles-in-selection]
                                    (if-let [{l :x, pt :y, cards :cards, :as p} (first ps)]
-                                     (let [r (+ l card-width)
+                                     (let [r (+ l c/card-width)
                                            t (-> (filter :selected? cards) first :y)
-                                           b (+ pt (pile-height p))]
+                                           b (+ pt (piles/pile-height p))]
                                        (if (within? l r t b x y)
                                          true
                                          (recur (next ps))))
                                      ;; else (no more piles)
                                      false))
-          card-under-mouse (card-under piles x y)
-          [dx dy] (drag-pile-pos x y)
-          drag-target (drag-target {:x dx, :y dy} piles)]
+          card-under-mouse (piles/card-under piles x y)
+          [dx dy] (drag/drag-pile-pos x y)
+          drag-target (drag/drag-target {:x dx, :y dy} piles)]
 
       (cond
         extant-selection-drag?
-        (let [[drag-pile-x drag-pile-y] (drag-pile-pos x y)
+        (let [[drag-pile-x drag-pile-y] (drag/drag-pile-pos x y)
               selected-cards (filter :selected?
                                      (mapcat :cards piles-in-selection))
-              drag-pile (make-drag-pile selected-cards drag-pile-x drag-pile-y)]
+              drag-pile (piles/make-drag-pile selected-cards
+                                              drag-pile-x, drag-pile-y)]
           (-> (reduce (fn [state {px :x, py :y, cards :cards}]
                         (let [cards' (remove :selected? cards)]
                           (if (empty? cards')
-                            (remove-pile state px py)
-                            (add-pile state (make-pile cards' px py)))))
+                            (state/remove-pile state px py)
+                            (state/add-pile state
+                                            (piles/make-pile cards' px py)))))
                       state
                       piles-in-selection)
             (assoc :drag drag-pile
                    :drag-target drag-target)))
 
         card-under-mouse ;; make drag pile w/only current card
-        (let [[dpx dpy] (drag-pile-pos x y)
-              {px :x, py :y :as pile} (pile-under piles x y)
-              pile-cards' (remove #(= (:id %) (:id card-under-mouse)) (:cards pile))]
+        (let [[dpx dpy] (drag/drag-pile-pos x y)
+              {px :x, py :y :as pile} (piles/pile-under piles x y)
+              pile-cards' (remove #(= (:id %) (:id card-under-mouse))
+                                  (:cards pile))]
           (-> (if (empty? pile-cards')
-                (remove-pile state px py)
-                (add-pile state (make-pile pile-cards' px py)))
-            (assoc :drag (make-drag-pile [card-under-mouse] dpx dpy)
+                (state/remove-pile state px py)
+                (state/add-pile state (piles/make-pile pile-cards' px py)))
+            (assoc :drag (piles/make-drag-pile [card-under-mouse] dpx dpy)
                    :drag-target drag-target)))
 
         :otherwise (dissoc state :drag)))))
-
-(defn apply-selection
-  [state selection]
-  (let [{piles :piles} state]
-    (if-not selection
-      state
-      (map-piles (partial pile-after-selection selection) state))))
 
 (defn start-selection-if-not-dragging-action
   [pos]
@@ -685,54 +173,20 @@
       state
       (let [selection {:start pos, :stop pos}]
         (-> state
-          (apply-selection selection)
+          (state/apply-selection selection)
           (assoc :selection selection))))))
-
-(defn update-selection
-  [state x' y']
-  (let [[x y] (get-in state [:selection :stop])
-        x0 (if (< x x') x x') ;; written in this verbose manner in order to
-        x1 (if (< x x') x' x) ;; generate as little garbage as possible
-        y0 (if (< y y') y y')
-        y1 (if (< y y') y' y)
-        {xs :vertical, ys :horizontal} (:selection-triggers state)
-        update? (or (some #(between? x0 x1 %) xs)
-                    (some #(between? y0 y1 %) ys))
-        state' (assoc-in state [:selection :stop] [x' y'])]
-    (if-not update?
-      state'
-      (apply-selection state' (:selection state')))))
-
-(defn update-drag
-  [state x' y']
-  (let [dx (get-in state [:drag :x])
-        dy (get-in state [:drag :y])
-        [x y] (mouse-pos dx dy)
-        x0 (if (< x x') x x') ;; written in this verbose manner in order to
-        x1 (if (< x x') x' x) ;; generate as little garbage as possible
-        y0 (if (< y y') y y')
-        y1 (if (< y y') y' y)
-        {xs :vertical, ys :horizontal} (:drag-triggers state)
-        update? (or (some #(between? x0 x1 %) xs)
-                    (some #(between? y0 y1 %) ys))
-        state' (let [[px py] (drag-pile-pos x' y')
-                     drag-pile (make-drag-pile (get-in state [:drag :cards]) px py)]
-                 (assoc state :drag drag-pile))]
-    (if-not update?
-      state'
-      (assoc state' :drag-target (drag-target (:drag state') (:piles state'))))))
 
 (defn update-selection-or-drag-destination-action
   [pos]
   (fn [{:keys [drag selection piles] :as state}]
-    (let [max-pile-x (or (:max-pile-x state) (max-pile-x piles))
-          max-x (+ max-pile-x card-width gutter
-                   (if drag (+ card-width half-card-width) 0))
+    (let [max-pile-x (or (:max-pile-x state) (piles/max-pile-x piles))
+          max-x (+ max-pile-x c/card-width c/gutter
+                   (if drag (+ c/card-width c/half-card-width) 0))
           x (min max-x (nth pos 0))
           y (nth pos 1)]
       (cond
-        drag (update-drag state x y)
-        selection (update-selection state x y)
+        drag (state/update-drag state x y)
+        selection (state/update-selection state x y)
         :else state))))
 
 (defn stop-selection-or-drag-action
@@ -740,32 +194,32 @@
   (fn [{:keys [selection drag piles] :as state}]
     (cond
       selection (-> state
-                  (apply-selection selection)
+                  (state/apply-selection selection)
                   (dissoc :selection))
-      drag (let [[tx ty] (drag-target drag piles)
-                 new-pile (if-let [{old-cards :cards} (get-pile state tx ty)]
-                            (make-pile (concat old-cards (:cards drag))
-                                       tx, ty)
-                            (make-pile (:cards drag) tx ty))]
+      drag (let [[tx ty] (drag/drag-target drag piles)
+                 new-pile (if-let [{old-cards :cards} (state/get-pile state tx ty)]
+                            (piles/make-pile (concat old-cards (:cards drag))
+                                             tx, ty)
+                            (piles/make-pile (:cards drag) tx ty))]
              (-> state
-               (add-pile new-pile)
-               (update-in [:piles] rejigger-rows)
+               (state/add-pile new-pile)
+               (update-in [:piles] piles/rejigger-rows)
                (dissoc :drag :drag-target)
-               add-max-pile-x
-               add-selection-triggers
-               add-drop-zones
-               add-to-history-if-new!))
+               state/add-max-pile-x
+               state/add-selection-triggers
+               state/add-drop-zones
+               history/add-to-history-if-new!))
       :otherwise state)))
 
 (defn rewind-state-action
   [should-rewind?]
   (if should-rewind?
-    (fn [current] (rewind! current))
+    (fn [current] (history/rewind! current))
     identity))
 
 (defn skip-ahead-state-action
   [_]
-  (fn [current] (skip-ahead! current)))
+  (fn [current] (history/skip-ahead! current)))
 
 ;;
 ;; Signal Graph
@@ -795,7 +249,7 @@
 
 (defn state-signal
   [initial-state]
-  (let [app-mouse-position (sig/map #(update-in % [1] - mouse-y-offset) mouse/position)
+  (let [app-mouse-position (sig/map #(update-in % [1] - c/mouse-y-offset) mouse/position)
         drag-coords (sig/keep-when mouse/down? [0 0] app-mouse-position)
         dragging? (let [true-on-dragmove (sig/sample-on drag-coords (sig/constant true))]
                     (->> (sig/merge (sig/keep-if not false mouse/down?) true-on-dragmove)
@@ -814,9 +268,9 @@
                   (sig/map update-selection-or-drag-destination-action drag-coords)
                   (sig/map stop-selection-or-drag-action stop-drag)
                   (sig/map stop-selection-or-drag-action click-up)
-                  (sig/map rewind-state-action (on-key-code-down u-key-code))
+                  (sig/map rewind-state-action (on-key-code-down c/u-key-code))
                   (sig/map rewind-state-action undo-button-down)
-                  (sig/map skip-ahead-state-action (on-key-code-down r-key-code))
+                  (sig/map skip-ahead-state-action (on-key-code-down c/r-key-code))
                   (sig/map skip-ahead-state-action redo-button-down)
                   (sig/constant identity))]
     (sig/drop-repeats
@@ -831,11 +285,11 @@
 (defn render-selection
   [state]
   (if-let [selection (:selection state)]
-    (let [selected-count (->> (state->cards state)
+    (let [selected-count (->> (state/state->cards state)
                            (filter :selected?)
                            count)
           [ox oy] (:stop selection)
-          [left right top bottom] (selection-edges selection)]
+          [left right top bottom] (piles/selection-edges selection)]
 
       (dom/div nil
                (dom/div #js {:id "selection"
@@ -850,8 +304,8 @@
                  (dom/div #js {:id "counter"
                                :className "badge"
                                :style #js {:position "absolute"
-                                           :top (- oy (* 1.25 em))
-                                           :left (- ox (* 4 em))}}
+                                           :top (- oy (* 1.25 c/em))
+                                           :left (- ox (* 4 c/em))}}
                           (pr-str selected-count)))))))
 
 (defn render-card
@@ -863,7 +317,8 @@
                                :top (+ y dy)}
                    :key id}
               (dom/img #js {:src img-src, :title name
-                            :width card-width, :height card-height})))))
+                            :width c/card-width
+                            :height c/card-height})))))
 
 (defn render-pile
   [pile]
@@ -874,15 +329,17 @@
   [state]
   (if-let [drag (:drag state)]
     (let [[tx ty] (:drag-target state)
-          target-pile (get-pile state tx ty)
-          target-height (if target-pile (pile-height target-pile) card-height)]
+          target-pile (state/get-pile state tx ty)
+          target-height (if target-pile
+                          (piles/pile-height target-pile)
+                          c/card-height)]
       (dom/div nil
                (dom/div #js {:id "drag-target"
                              :className "ghost"
                              :style #js {:position "absolute"
                                          :left tx
                                          :top ty
-                                         :width card-width
+                                         :width c/card-width
                                          :height target-height}})
                (apply dom/div #js {:id "drag" :className "pile"}
                       (map render-card (:cards drag)))))))
@@ -893,9 +350,10 @@
     (let [{dx :x dy :y} (:drag state)]
       (apply dom/div #js {:className "backsides-holder"
                           :style #js {:position "absolute"
-                                      :left (+ dx card-width), :top dy}}
+                                      :left (+ dx c/card-width), :top dy}}
              (map-indexed (fn [i card]
-                            (if card (render-card card 0 (* i pile-stride))))
+                            (if card
+                              (render-card card 0 (* i c/pile-stride))))
                           (map :reverse (get-in state [:drag :cards])))))))
 
 (defn preload-dfcs
@@ -923,7 +381,7 @@
   [state]
   (let [{:keys [drag piles]} state
         max-y (+ (apply max (keys piles))
-                 (row-height (get piles (last (keys piles)))))]
+                 (piles/row-height (get piles (last (keys piles)))))] ;; TODO replace w/last-row fn
     (dom/div #js {:id "footer"
                   :style #js {:position "absolute"
                               :top max-y}}
@@ -939,7 +397,8 @@
 (defn render-state
   [state]
   (dom/div #js {:id "dom-root"}
-           (apply dom/div {:id "piles"} (map render-pile (state->piles state)))
+           (apply dom/div {:id "piles"}
+                  (map render-pile (state/state->piles state)))
            (render-drag state)
            (render-selection state)
            (render-dfc state)
@@ -1025,17 +484,18 @@
 (defn migrate-state
   [possibly-old-state]
   (let [w-cached-vals (-> possibly-old-state
-                        add-max-pile-x
-                        add-selection-triggers
-                        add-drop-zones
-                        add-dfcs)]
-    (map-piles #(make-pile (:cards %) (:x %) (:y %)) w-cached-vals)))
+                        state/add-max-pile-x
+                        state/add-selection-triggers
+                        state/add-drop-zones
+                        state/add-dfcs)]
+    (state/map-piles #(piles/make-pile (:cards %) (:x %) (:y %))
+                     w-cached-vals)))
 
 (defn start-app-from-state!
   [init-state]
   (let [state (migrate-state init-state)
         state-atom (sig/pipe-to-atom (state-signal state))]
-    (swap! !fate update-in [:past] (fnil conj ()) state)
+    (swap! history/!fate update-in [:past] (fnil conj ()) state)
     (start-om state-atom)))
 
 (def blank-state {:piles (sorted-map)})
@@ -1047,7 +507,8 @@
                               (partial remove rare?))
                         cards)
         rare->pile (fn [i rare]
-                     (make-pile [rare] (x-of-column-indexed i) half-gutter))
+                     (piles/make-pile
+                       [rare] (piles/x-of-column-indexed i) c/half-gutter))
         rare-piles (map-indexed rare->pile (sort-by wubrggc-sort rares))
         color->non-rares (group-by (fn [{:keys [colors manaCost] :as card}]
                                      (if-let [cost-color (cost->colortype manaCost)]
@@ -1062,8 +523,8 @@
                                                (nth (dec (count cs-&-ps)) nil)
                                                (nth 1 nil))
                                       x (if last-x
-                                          (+ last-x pile-spacing)
-                                          half-gutter)]
+                                          (+ last-x c/pile-spacing)
+                                          c/half-gutter)]
                                   (if (empty? (color->non-rares color))
                                     cs-&-ps
                                     (conj cs-&-ps [color x]))))
@@ -1071,15 +532,16 @@
                               color-order)
         pile-for-color-at-x (fn [[color x]]
                               (let [col-cards (color->non-rares color)
-                                    y (+ half-gutter card-height gutter)]
-                                (make-pile (sort-by :name col-cards) x y)))
+                                    y (+ c/half-gutter c/card-height c/gutter)]
+                                (piles/make-pile (sort-by :name col-cards) x y)))
         color-piles (map pile-for-color-at-x colors-and-xs)]
     (concat rare-piles color-piles)))
 
 (defn deck-piles
   [cards]
   (map-indexed (fn [i [_ cmc-cards]]
-                 (make-pile (sort-by :name cmc-cards) (x-of-column-indexed i) half-gutter))
+                 (piles/make-pile (sort-by :name cmc-cards)
+                                  (piles/x-of-column-indexed i) c/half-gutter))
                (sort-by key (group-by :cmc cards))))
 
 (defn api-cards->init-state
@@ -1088,7 +550,7 @@
         piles (if (> (count cards) 76)
                 (sealed-pool-piles cards)
                 (deck-piles cards))]
-        (reduce (fn [state pile] (add-pile state pile)) blank-state piles)))
+        (reduce (fn [state pile] (state/add-pile state pile)) blank-state piles)))
 
 (defn start-app-from-api-cards!
   [api-cards]
@@ -1136,7 +598,7 @@
 (defn get-state-and-start-app!
   []
   (let [page-path (-> js/document .-location .-pathname)
-        components (path-components page-path)]
+        components (history/path-components page-path)]
     (if (= (first components) "decks")
       (let [[_ deck-hash] components]
         (transform-to-deck-ui!)
@@ -1146,7 +608,7 @@
                          :error-handler halt-app-on-err}))
       ;; otherwise, if we're not loading a deck, we're in the sealed section
       (let [[pack-spec seed] components]
-        (if-let [saved-state (load-state pack-spec seed)]
+        (if-let [saved-state (history/load-state pack-spec seed)]
           (start-app-from-state! saved-state)
           (async-http/GET (str "/api/pool/" (or pack-spec default-pack-spec) "/" seed)
                           {:response-format (edn-response-format)
