@@ -17,8 +17,7 @@
       (dom/div nil
                (dom/div #js {:id "selection"
                              :className "box"
-                             :style #js {:position "absolute"
-                                         :top top
+                             :style #js {:top top
                                          :left left
                                          :width (- right left)
                                          :height (- bottom top)}})
@@ -26,8 +25,7 @@
                (if (pos? selected-count)
                  (dom/div #js {:id "counter"
                                :className "badge"
-                               :style #js {:position "absolute"
-                                           :top (- oy (* 1.25 c/em))
+                               :style #js {:top (- oy (* 1.25 c/em))
                                            :left (- ox (* 4 c/em))}}
                           (pr-str selected-count)))))))
 
@@ -59,8 +57,7 @@
       (dom/div nil
                (dom/div #js {:id "drag-target"
                              :className "ghost"
-                             :style #js {:position "absolute"
-                                         :left tx
+                             :style #js {:left tx
                                          :top ty
                                          :width c/card-width
                                          :height target-height}})
@@ -71,9 +68,8 @@
   [state]
   (if (get-in state [:drag :dfcs?])
     (let [{dx :x dy :y} (:drag state)]
-      (apply dom/div #js {:className "backsides-holder"
-                          :style #js {:position "absolute"
-                                      :left (+ dx c/card-width), :top dy}}
+      (apply dom/div #js {:className "dfc-back-container"
+                          :style #js {:left (+ dx c/card-width), :top dy}}
              (map-indexed (fn [i card]
                             (if card
                               (card card 0 (* i c/pile-stride))))
@@ -118,8 +114,7 @@
         max-y (+ (apply max (keys piles))
                  (piles/row-height (get piles (last (keys piles)))))] ;; TODO replace w/last-row fn
     (dom/div #js {:id "footer"
-                  :style #js {:position "absolute"
-                              :top max-y}}
+                  :style #js {:top max-y}}
              (dom/div #js {:className "disclaimer"}
                       (dom/strong nil "Magic: the Gathering")
                       " is © Wizards of the Coast"

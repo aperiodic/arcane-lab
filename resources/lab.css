@@ -90,6 +90,10 @@ h1, h2, h3, h4, p {
   top: 38px;
 }
 
+div.box, div.badge, div.ghost, div.overlay, div.dfc-back-container, div#footer {
+  position: absolute;
+}
+
 #selection, .selected {
   outline: 3px solid #39C527;
 }
