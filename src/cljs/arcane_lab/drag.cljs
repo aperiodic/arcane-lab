@@ -1,5 +1,6 @@
 (ns arcane-lab.drag
   (:require [arcane-lab.constants :as c]
+            [arcane-lab.geom :refer [mean]]
             [arcane-lab.piles :as piles]))
 
 (defn drag-pile-pos
@@ -14,27 +15,16 @@
   [(+ drag-x c/drag-x-offset)
    (+ drag-y c/drag-y-offset)])
 
-(defn distance-squared-to
-  ([p] (let [{x :x y :y} p] (distance-squared-to x y)))
-  ([x y]
-   (fn [[cx cy]]
-     (let [dx (- x (+ cx c/half-card-width))
-           dy (- y (+ cy c/half-card-height))]
-       (+ (* dx dx) (* dy dy))))))
-
 (defn drag-target
   [drag piles]
-  ;; want to find the nearest drop position for the drag, which means:
-  ;;   nearest pile or place where new pile could be inserted
   (if drag
-    (let [[x y] (mouse-pos (:x drag) (:y drag))
+    (let [{dx :x, dy :y} drag
+          [x y] (mouse-pos dx dy)
           col-index (quot (- x c/half-gutter) c/pile-spacing)
           left-col (-> (* col-index c/pile-spacing)
                      (+ c/half-gutter))
           right-col (-> (* (inc col-index) c/pile-spacing)
                       (+ c/half-gutter))
-          rows (vals piles)
-          all-piles (mapcat vals rows)
           row-ys (keys piles)
           row-count (count piles)
           row-spacings (vec (piles/row-spacings row-ys))
@@ -46,8 +36,21 @@
                             (< y first-row-y) (piles/row-i-height piles 0)
                             (not (empty? after)) (nth row-spacings (dec (count before-and-on)))
                             :otherwise (piles/row-height (get piles (last row-ys))))
-          candidates (for [cx [left-col right-col]
-                           cy [row-y (+ row-y curr-row-height)]]
-                       [cx cy])]
-      (first (sort-by (distance-squared-to x y) candidates)))))
+          left-col-center (+ left-col c/half-card-width)
+          right-col-center (+ right-col c/half-card-width)
+          hovered-pile (piles/pile-at piles left-col row-y)
+          tx (if (<= x (mean left-col-center right-col-center)) left-col right-col)
+          ty (if (<= y (min (+ row-y (:height hovered-pile) (* c/card-height (/ 3 4)))
+                            (+ row-y curr-row-height)))
+               row-y (+ row-y curr-row-height))
+          target-pile (piles/pile-at piles tx ty)]
+      (if-not target-pile
+        [tx ty :no-pile]
+        (let [bottom-of-last-card (+ ty (:height target-pile))
+              top-of-last-card (- bottom-of-last-card (- c/card-height c/pile-stride))]
+          (cond
+            (>= dy bottom-of-last-card) [tx ty :above-pile]
+            (>= dy top-of-last-card) [tx ty (count (:cards target-pile))]
+            (< dy ty) [tx ty :below-pile]
+            :else [tx ty (-> (- dy ty) (/ c/pile-stride) Math/round)]))))))
 

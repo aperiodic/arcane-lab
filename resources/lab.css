@@ -113,8 +113,19 @@ div.box, div.badge, div.ghost, div.overlay, div.dfc-back-container, div#footer {
 }
 
 .ghost {
-  outline: 4px dashed #c21700;
+  outline: 4px dashed #bd24bd;
   z-index: 2;
+}
+
+.overlay {
+  background: #bd24bd;
+  z-index: 3;
+}
+
+div#drop-target.overlay {
+  height: 5px;
+  box-shadow: 0px 0px 10px 3px #bd24bd;
+  border-radius: 2px;
 }
 
 .card {

@@ -94,13 +94,16 @@
       selection (-> state
                   (state/apply-selection selection)
                   (dissoc :selection))
-      drag (let [[tx ty] (drag/drag-target drag piles)
-                 new-pile (if-let [{old-cards :cards} (state/get-pile state tx ty)]
-                            (piles/make-pile (concat old-cards (:cards drag))
-                                             tx, ty)
-                            (piles/make-pile (:cards drag) tx ty))]
+      drag (let [{dx :x, dy :y, drag-cards :cards} drag
+                 [x y] (drag/mouse-pos dx dy)
+                 [tx ty ti] (drag/drag-target drag piles)
+                 {old-cards :cards} (state/get-pile state tx ty)
+                 new-cards (cond
+                            (= ti :no-pile) drag-cards
+                            (or (= ti :below-pile) (= ti :above-pile)) (concat old-cards drag-cards)
+                            :else (concat (take ti old-cards) drag-cards (drop ti old-cards)))]
              (-> state
-               (state/add-pile new-pile)
+               (state/add-pile (piles/make-pile new-cards tx ty))
                (update-in [:piles] piles/rejigger-rows)
                (dissoc :drag :drag-target)
                state/add-max-pile-x

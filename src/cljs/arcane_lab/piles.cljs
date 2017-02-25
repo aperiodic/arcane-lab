@@ -1,6 +1,6 @@
 (ns arcane-lab.piles
   (:require [arcane-lab.constants :as c]
-            [arcane-lab.geom :refer [within?]]))
+            [arcane-lab.geom :refer [half within?]]))
 
 (defn pile-height
   [{:keys [cards height] :as pile}]
@@ -227,6 +227,26 @@
                                  ;; else (no more cards)
                                  out))))))))
 
+(defn drop-ys-for-pile
+  [pile row-height]
+  (let [{py :y, :keys [cards height]} pile
+        half-stride (half c/pile-stride)
+        next-row-y-trigger (+ py (min row-height
+                                      (+ height (* c/card-height (/ 3 4)) (- c/pile-stride))))]
+    (->> (range (- py half-stride)
+                (+ py (* (count cards) c/pile-stride) 1)
+                c/pile-stride)
+      (map #(+ % c/drag-y-offset))
+      (concat (if (> py c/half-gutter)
+                (list py next-row-y-trigger)
+                (list next-row-y-trigger))))))
+
+(defn drop-ys-for-row
+  [row]
+  (let [height (row-height row)]
+    (->> (mapcat #(drop-ys-for-pile % height) (vals row))
+      distinct)))
+
 (defn drop-zones
   [piles]
   (let [x-lim (+ (max-pile-x piles) (* 2 c/pile-spacing))
@@ -236,12 +256,8 @@
                       (concat (list last-y)))]
     {:vertical (range (+ c/card-width c/gutter)
                       x-lim, c/pile-spacing)
-     :horizontal (for [[y0 y1] (->> (interleave (for [[y row] piles]
-                                                  (+ y c/card-height))
-                                                next-row-ys)
-                                 (partition 2))]
-                   (-> (+ y0 y1)
-                     (/ 2)))}))
+     :horizontal (->> (mapcat drop-ys-for-row (vals piles))
+                   distinct)}))
 
 (defn move-row
   [piles y y']

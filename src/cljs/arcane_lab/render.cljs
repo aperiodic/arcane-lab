@@ -49,7 +49,7 @@
 (defn drag
   [state]
   (if-let [drag (:drag state)]
-    (let [[tx ty] (:drag-target state)
+    (let [[tx ty insertion-index] (:drag-target state)
           target-pile (state/get-pile state tx ty)
           target-height (if target-pile
                           (piles/pile-height target-pile)
@@ -61,6 +61,14 @@
                                          :top ty
                                          :width c/card-width
                                          :height target-height}})
+               (if (number? insertion-index)
+                 (let [margin 4]
+                   (dom/div #js {:id "drop-target"
+                               :className "overlay"
+                               :style #js {:left (+ tx margin)
+                                           :top (+ ty (* insertion-index c/pile-stride)
+                                                   (- 2))
+                                           :width (- c/card-width (* 2 margin))}})))
                (apply dom/div #js {:id "drag" :className "pile"}
                       (map #(card % 0 0) (:cards drag)))))))
 
