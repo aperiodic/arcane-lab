@@ -1,4 +1,5 @@
-(ns arcane-lab.constants)
+(ns arcane-lab.constants
+  (:require [arcane-lab.geom :refer [half]]))
 
 ;;
 ;; Constants
@@ -9,15 +10,15 @@
 
 (def em 18)
 
-(def half-card-width (int (/ card-width 2)))
-(def half-card-height (int (/ card-height 2)))
+(def half-card-width (int (half card-width)))
+(def half-card-height (int (half card-height)))
 
 (def gutter (int (/ card-width 8)))
-(def half-gutter (int (/ gutter 2)))
+(def half-gutter (int (half gutter)))
 (def pile-stride (int (/ card-height 9.5)))
 (def pile-spacing (+ card-width gutter))
 
-(def drag-x-offset (/ card-width 2))
+(def drag-x-offset (half card-width))
 (def drag-y-offset (-> (* 0.4 card-height) int))
 
 (def mouse-y-offset 48)
