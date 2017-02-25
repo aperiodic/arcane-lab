@@ -65,7 +65,7 @@
                                          :width c/card-width
                                          :height target-height}})
                (apply dom/div #js {:id "drag" :className "pile"}
-                      (map card (:cards drag)))))))
+                      (map #(card % 0 0) (:cards drag)))))))
 
 (defn dfc
   [state]
