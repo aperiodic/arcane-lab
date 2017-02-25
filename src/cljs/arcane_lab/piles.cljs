@@ -133,6 +133,10 @@
         card-hit)
       card-hit)))
 
+(defn pile-at
+  [piles x y]
+  (get-in piles [y x]))
+
 (defn pile-under
   [piles x y]
   (if-let [row (row-for piles y)]
