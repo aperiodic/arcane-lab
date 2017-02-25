@@ -129,6 +129,23 @@ h1, h2, h3, h4, p {
   background: rgba(255,255,255, 0.6);
 }
 
+div.line {
+  outline: 1px solid rgba(23, 194, 0, 0.25);
+  z-index: 10;
+}
+
+div.line.horizontal {
+  position: absolute;
+  width: 3000px;
+  height: 0px;
+}
+
+div.line.vertical {
+  position: absolute;
+  height: 2000px;
+  width: 0px;
+}
+
 #footer {
   width: 100%;
   text-align: center;

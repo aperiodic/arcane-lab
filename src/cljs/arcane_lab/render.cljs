@@ -100,6 +100,18 @@
                              (.stringify js/JSON
                                (clj->js trimmed-state) nil 2))))))
 
+(defn drop-zone-lines
+  [state]
+  (let [{xs :vertical, ys :horizontal} (:drag-triggers state)]
+    (dom/div nil
+             (concat
+               (for [x xs]
+                 (dom/div #js {:className "debug line vertical"
+                               :style #js {:left x}}))
+               (for [y ys]
+                 (dom/div #js {:className "debug line horizontal"
+                               :style #js {:top y}}))))))
+
 (defn footer
   [state]
   (let [{:keys [drag piles]} state
