@@ -2,20 +2,17 @@
   (:require [arcane-lab.constants :as c]
             [arcane-lab.piles :as piles]))
 
-(def drag-x-offset (/ c/card-width 2))
-(def drag-y-offset (-> (* 0.4 c/card-height) int))
-
 (defn drag-pile-pos
   "Given the mouse's x & y coordinates, return the position of the drag pile
   such that the mouse is in the center."
   [x y]
-  [(- x drag-x-offset)
-   (- y drag-y-offset)])
+  [(- x c/drag-x-offset)
+   (- y c/drag-y-offset)])
 
 (defn mouse-pos
   [drag-x drag-y]
-  [(+ drag-x drag-x-offset)
-   (+ drag-y drag-y-offset)])
+  [(+ drag-x c/drag-x-offset)
+   (+ drag-y c/drag-y-offset)])
 
 (defn distance-squared-to
   ([p] (let [{x :x y :y} p] (distance-squared-to x y)))

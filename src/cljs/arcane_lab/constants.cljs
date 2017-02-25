@@ -17,6 +17,9 @@
 (def pile-stride (int (/ card-height 9.5)))
 (def pile-spacing (+ card-width gutter))
 
+(def drag-x-offset (/ card-width 2))
+(def drag-y-offset (-> (* 0.4 card-height) int))
+
 (def mouse-y-offset 48)
 
 (def u-key-code 85)
