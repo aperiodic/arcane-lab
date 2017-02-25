@@ -183,6 +183,16 @@
             (if y-asc? y1 y2)
             (if y-asc? y2 y1))))
 
+(defn card-y-boundaries
+  [piles]
+  (-> (concat (for [[row-y row] piles
+                    i (range 0 (row-card-height row))]
+                (+ row-y (* i c/pile-stride)))
+              (for [[row-y row] piles
+                    pile (vals row)]
+                (+ row-y (pile-height pile))))
+    distinct))
+
 (defn selection-check-boundaries
   [piles]
   (let [x-max (+ (max-pile-x piles) c/card-width 1)
@@ -190,13 +200,7 @@
     {:vertical (interleave (range c/half-gutter x-max x-stride)
                            (range (+ c/half-gutter c/card-width)
                                   x-max, x-stride))
-     :horizontal (concat (for [[row-y row] piles
-                               i (range 0 (row-card-height row))]
-                           (+ row-y (* i c/pile-stride)))
-                         (distinct
-                           (for [[row-y row] piles
-                                 pile (vals row)]
-                             (+ row-y (pile-height pile)))))}))
+     :horizontal (card-y-boundaries piles)}))
 
 (defn pile-after-selection
   "Given a selection and a pile returns a new pile with the cards that the
