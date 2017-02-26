@@ -1,6 +1,6 @@
 (ns arcane-lab.drag
   (:require [arcane-lab.constants :as c]
-            [arcane-lab.geom :refer [mean]]
+            [arcane-lab.geom :refer [half mean]]
             [arcane-lab.piles :as piles]))
 
 (defn drag-pile-pos
@@ -51,6 +51,6 @@
           (cond
             (>= dy bottom-of-last-card) [tx ty :above-pile]
             (>= dy top-of-last-card) [tx ty (count (:cards target-pile))]
-            (< dy ty) [tx ty :below-pile]
+            (<= dy (- ty (half c/pile-stride))) [tx ty :below-pile]
             :else [tx ty (-> (- dy ty) (/ c/pile-stride) Math/round)]))))))
 
