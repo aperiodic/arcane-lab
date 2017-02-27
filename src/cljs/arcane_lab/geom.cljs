@@ -1,4 +1,5 @@
-(ns arcane-lab.geom)
+(ns arcane-lab.geom
+  (:require [arcane-lab.util :refer [binary-search]]))
 
 (defn within?
   "Returns true if the point at (x,y) is within the box defined by left, right,
@@ -13,4 +14,11 @@
   [lo hi x]
   (and (>= x lo)
        (<= x hi)))
+
+(defn any-lines-between?
+  [c0 c1 sorted-lines]
+  ;; the 0.1 is a trick to make the two passed coordinates never exactly = any
+  ;; of the sorted lines' coordinates
+  (not= (binary-search sorted-lines (+ 0.1 c0))
+        (binary-search sorted-lines (+ 0.1 c1))))
 
