@@ -201,7 +201,7 @@
     {:vertical (interleave (range c/half-gutter x-max x-stride)
                            (range (+ c/half-gutter c/card-width)
                                   x-max, x-stride))
-     :horizontal (card-y-boundaries piles)}))
+     :horizontal (sort (card-y-boundaries piles))}))
 
 (defn pile-after-selection
   "Given a selection and a pile returns a new pile with the cards that the
@@ -258,7 +258,8 @@
     {:vertical (range (+ c/card-width c/gutter)
                       x-lim, c/pile-spacing)
      :horizontal (->> (mapcat drop-ys-for-row (vals piles))
-                   distinct)}))
+                   distinct
+                   sort)}))
 
 (defn move-row
   [piles y y']

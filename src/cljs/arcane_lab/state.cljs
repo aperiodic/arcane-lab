@@ -1,8 +1,9 @@
 (ns arcane-lab.state
   (:require [arcane-lab.constants :as c]
             [arcane-lab.drag :as drag]
-            [arcane-lab.geom :refer [between?]]
-            [arcane-lab.piles :as piles]))
+            [arcane-lab.geom :as geom]
+            [arcane-lab.piles :as piles]
+            [arcane-lab.util :refer [binary-search]]))
 
 (defn state->piles
   [state]
@@ -53,13 +54,9 @@
 (defn update-selection
   [state x' y']
   (let [[x y] (get-in state [:selection :stop])
-        x0 (if (< x x') x x') ;; written in this verbose manner in order to
-        x1 (if (< x x') x' x) ;; generate as little garbage as possible
-        y0 (if (< y y') y y')
-        y1 (if (< y y') y' y)
         {xs :vertical, ys :horizontal} (:selection-triggers state)
-        update? (or (some #(between? x0 x1 %) xs)
-                    (some #(between? y0 y1 %) ys))
+        update? (or (geom/any-lines-between? y y' ys)
+                    (geom/any-lines-between? x x' xs))
         state' (assoc-in state [:selection :stop] [x' y'])]
     (if-not update?
       state'
@@ -70,13 +67,9 @@
   (let [dx (get-in state [:drag :x])
         dy (get-in state [:drag :y])
         [x y] (drag/mouse-pos dx dy)
-        x0 (if (< x x') x x') ;; written in this verbose manner in order to
-        x1 (if (< x x') x' x) ;; generate as little garbage as possible
-        y0 (if (< y y') y y')
-        y1 (if (< y y') y' y)
         {xs :vertical, ys :horizontal} (:drag-triggers state)
-        update? (or (some #(between? x0 x1 %) xs)
-                    (some #(between? y0 y1 %) ys))
+        update? (or (geom/any-lines-between? y y' ys)
+                    (geom/any-lines-between? x x' xs))
         state' (let [[px py] (drag/drag-pile-pos x' y')
                      drag-pile (piles/make-drag-pile
                                  (get-in state [:drag :cards]) px py)]
