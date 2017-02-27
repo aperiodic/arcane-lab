@@ -1,5 +1,5 @@
 (ns arcane-lab.constants
-  (:require [arcane-lab.geom :refer [half]]))
+  (:require [arcane-lab.util :refer [half]]))
 
 ;;
 ;; Constants

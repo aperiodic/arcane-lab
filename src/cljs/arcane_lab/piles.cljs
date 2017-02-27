@@ -1,6 +1,7 @@
 (ns arcane-lab.piles
   (:require [arcane-lab.constants :as c]
-            [arcane-lab.geom :refer [half within?]]))
+            [arcane-lab.geom :refer [within?]]
+            [arcane-lab.util :refer [half]]))
 
 (defn pile-height
   [{:keys [cards height] :as pile}]

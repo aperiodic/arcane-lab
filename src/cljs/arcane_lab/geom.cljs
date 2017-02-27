@@ -14,10 +14,3 @@
   (and (>= x lo)
        (<= x hi)))
 
-(defn half
-  [x]
-  (/ x 2))
-
-(defn mean
-  [x y]
-  (-> (+ x y) (/ 2)))

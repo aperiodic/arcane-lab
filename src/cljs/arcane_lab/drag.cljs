@@ -1,7 +1,7 @@
 (ns arcane-lab.drag
   (:require [arcane-lab.constants :as c]
-            [arcane-lab.geom :refer [half mean]]
-            [arcane-lab.piles :as piles]))
+            [arcane-lab.piles :as piles]
+            [arcane-lab.util :refer [half mean]]))
 
 (defn drag-pile-pos
   "Given the mouse's x & y coordinates, return the position of the drag pile
