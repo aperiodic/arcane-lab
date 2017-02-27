@@ -39,8 +39,9 @@
           left-col-center (+ left-col c/half-card-width)
           right-col-center (+ right-col c/half-card-width)
           hovered-pile (piles/pile-at piles left-col row-y)
+          hov-height (max (or (:height hovered-pile) 0) curr-row-height)
           tx (if (<= x (mean left-col-center right-col-center)) left-col right-col)
-          ty (if (<= y (min (+ row-y (:height hovered-pile) (* c/card-height (/ 3 4)))
+          ty (if (<= y (min (+ row-y hov-height (* c/card-height (/ 3 4)))
                             (+ row-y curr-row-height)))
                row-y (+ row-y curr-row-height))
           target-pile (piles/pile-at piles tx ty)]
