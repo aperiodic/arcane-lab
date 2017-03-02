@@ -233,7 +233,7 @@
   (let [{py :y, :keys [cards height]} pile
         half-stride (half c/pile-stride)
         next-row-y-trigger (+ py (min row-height
-                                      (+ height (* c/card-height (/ 3 4)) (- c/pile-stride))))]
+                                      (+ height (* 0.66 c/card-height) (- c/pile-stride))))]
     (->> (range (- py half-stride)
                 (+ py (* (count cards) c/pile-stride) 1)
                 c/pile-stride)
