@@ -16,9 +16,9 @@
   above criteria are satisfied. "
   [pos]
   (fn [{:keys [piles] :as state}]
-    (let [piles-in-selection (filter #(some :selected? (:cards %))
+    (let [[x y] pos
+          piles-in-selection (filter #(some :selected? (:cards %))
                                      (state/state->piles state))
-          [x y] pos
           extant-selection-drag? (loop [ps piles-in-selection]
                                    (if-let [{l :x, pt :y, cards :cards, :as p} (first ps)]
                                      (let [r (+ l c/card-width)
@@ -30,8 +30,7 @@
                                      ;; else (no more piles)
                                      false))
           card-under-mouse (piles/card-under piles x y)
-          [dx dy] (drag/drag-pile-pos x y)
-          drag-target (drag/drag-target {:x dx, :y dy} piles)]
+          [dx dy] (drag/drag-pile-pos x y)]
 
       (cond
         extant-selection-drag?
@@ -39,28 +38,29 @@
               selected-cards (filter :selected?
                                      (mapcat :cards piles-in-selection))
               drag-pile (piles/make-drag-pile selected-cards
-                                              drag-pile-x, drag-pile-y)]
-          (-> (reduce (fn [state {px :x, py :y, cards :cards}]
-                        (let [cards' (remove :selected? cards)]
-                          (if (empty? cards')
-                            (state/remove-pile state px py)
-                            (state/add-pile state
-                                            (piles/make-pile cards' px py)))))
-                      state
-                      piles-in-selection)
-            (assoc :drag drag-pile
-                   :drag-target drag-target)))
+                                              drag-pile-x, drag-pile-y)
+              state' (reduce (fn [state {px :x, py :y, cards :cards}]
+                               (let [cards' (remove :selected? cards)]
+                                 (if (empty? cards')
+                                   (state/remove-pile state px py)
+                                   (state/add-pile state
+                                                   (piles/make-pile cards' px py)))))
+                             state
+                             piles-in-selection)]
+          (assoc state'
+                 :drag drag-pile :drag-target (drag/drag-target {:x dx, :y dy} (:piles state'))))
 
         card-under-mouse ;; make drag pile w/only current card
         (let [[dpx dpy] (drag/drag-pile-pos x y)
               {px :x, py :y :as pile} (piles/pile-under piles x y)
               pile-cards' (remove #(= (:id %) (:id card-under-mouse))
-                                  (:cards pile))]
-          (-> (if (empty? pile-cards')
-                (state/remove-pile state px py)
-                (state/add-pile state (piles/make-pile pile-cards' px py)))
-            (assoc :drag (piles/make-drag-pile [card-under-mouse] dpx dpy)
-                   :drag-target drag-target)))
+                                  (:cards pile))
+              state' (if (empty? pile-cards')
+                       (state/remove-pile state px py)
+                       (state/add-pile state (piles/make-pile pile-cards' px py)))]
+          (assoc state'
+                 :drag (piles/make-drag-pile [card-under-mouse] dpx dpy)
+                 :drag-target (drag/drag-target {:x dx, :y dy} (:piles state'))))
 
         :otherwise (dissoc state :drag)))))
 
