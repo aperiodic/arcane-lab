@@ -44,11 +44,13 @@
     :x x, :y y, :height (pile-height {:cards cards})}))
 
 (defn make-drag-pile
-  [cards drag-x drag-y card-picked-pos]
-  (-> (make-pile cards drag-x drag-y)
-    (assoc :moved? false
-           :cards-orig-pos card-picked-pos
-           :dfcs? (boolean (some :dfc cards)))))
+  ([cards x y card-picked-pos] (make-drag-pile cards x y card-picked-pos false))
+  ([cards x y card-picked-pos first-card-picked?]
+   (-> (make-pile cards x y)
+     (assoc :moved? false
+            :cards-orig-pos card-picked-pos
+            :first-card-picked? first-card-picked?
+            :dfcs? (boolean (some :dfc cards))))))
 
 (defn move-drag-pile-to
   [drag-pile x y]
