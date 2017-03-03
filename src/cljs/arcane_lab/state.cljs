@@ -64,16 +64,14 @@
 
 (defn update-drag
   [state x' y']
-  (let [dx (get-in state [:drag :x])
-        dy (get-in state [:drag :y])
+  (let [{dx :x, dy :y} (:drag state)
         [x y] (drag/mouse-pos dx dy)
         {xs :vertical, ys :horizontal} (:drag-triggers state)
         update? (or (geom/any-lines-between? y y' ys)
-                    (geom/any-lines-between? x x' xs))
-        state' (let [[px py] (drag/drag-pile-pos x' y')
-                     drag-pile (piles/make-drag-pile
-                                 (get-in state [:drag :cards]) px py)]
-                 (assoc state :drag drag-pile))]
+                    (geom/any-lines-between? x x' xs)
+                    (false? (get-in state [:drag :moved?])))
+        [dx' dy'] (drag/drag-pile-pos x' y')
+        state' (update state :drag piles/move-drag-pile-to dx' dy')]
     (if-not update?
       state'
       (assoc state' :drag-target (drag/drag-target (:drag state')

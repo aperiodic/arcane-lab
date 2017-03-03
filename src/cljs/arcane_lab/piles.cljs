@@ -28,21 +28,33 @@
   [n]
   (+ (* n c/pile-spacing) c/half-gutter))
 
+(defn- reposition-cards
+  [cards x y]
+  (let [reposition (fn [i card]
+                     (assoc card :x x, :y (+ y (* i c/pile-stride))))]
+    (-> (map-indexed reposition cards)
+      vec)))
+
 (defn make-pile
   ([cards] (make-pile cards
                       (-> (map :x cards) sort first)
                       (-> (map :y cards) sort first)))
   ([cards x y]
-   (let [reposition (fn [i card]
-                      (assoc card :x x, :y (+ y (* i c/pile-stride))))
-         repositioned (map-indexed reposition cards)]
-     {:cards (vec repositioned), :x x, :y y
-      :height (pile-height {:cards cards})})))
+   {:cards (reposition-cards cards x y)
+    :x x, :y y, :height (pile-height {:cards cards})}))
 
 (defn make-drag-pile
-  [cards drag-x drag-y]
+  [cards drag-x drag-y card-picked-pos]
   (-> (make-pile cards drag-x drag-y)
-    (assoc :dfcs? (boolean (some :dfc cards)))))
+    (assoc :moved? false
+           :cards-orig-pos card-picked-pos
+           :dfcs? (boolean (some :dfc cards)))))
+
+(defn move-drag-pile-to
+  [drag-pile x y]
+  (-> drag-pile
+    (update :cards reposition-cards x y)
+    (assoc :x x, :y y, :moved? true)))
 
 (defn pile-selected?
   [edges pile]

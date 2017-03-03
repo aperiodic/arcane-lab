@@ -18,7 +18,8 @@
 (defn drag-target
   [drag piles]
   (if drag
-    (let [{dx :x, dy :y} drag
+    (let [undo-drag? (false? (:moved? drag))
+          {dx :x, dy :y} (if undo-drag? (:cards-orig-pos drag) drag)
           [x y] (mouse-pos dx dy)
           col-index (quot (- x c/half-gutter) c/pile-spacing)
           row-ys (keys piles)
