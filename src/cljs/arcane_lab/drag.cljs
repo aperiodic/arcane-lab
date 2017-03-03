@@ -21,10 +21,6 @@
     (let [{dx :x, dy :y} drag
           [x y] (mouse-pos dx dy)
           col-index (quot (- x c/half-gutter) c/pile-spacing)
-          left-col (-> (* col-index c/pile-spacing)
-                     (+ c/half-gutter))
-          right-col (-> (* (inc col-index) c/pile-spacing)
-                      (+ c/half-gutter))
           row-ys (keys piles)
           row-count (count piles)
           row-spacings (vec (piles/row-spacings row-ys))
@@ -36,6 +32,10 @@
                             (< y first-row-y) (piles/row-i-height piles 0)
                             (not (empty? after)) (nth row-spacings (dec (count before-and-on)))
                             :otherwise (piles/row-height (get piles (last row-ys))))
+          left-col (-> (* col-index c/pile-spacing)
+                     (+ c/half-gutter))
+          right-col (-> (* (inc col-index) c/pile-spacing)
+                      (+ c/half-gutter))
           left-col-center (+ left-col c/half-card-width)
           right-col-center (+ right-col c/half-card-width)
           hovered-pile (piles/pile-at piles left-col row-y)
@@ -54,4 +54,3 @@
             (>= dy top-of-last-card) [tx ty (count (:cards target-pile))]
             (<= dy (- ty (half c/pile-stride))) [tx ty :below-pile]
             :else [tx ty (-> (- dy ty) (/ c/pile-stride) Math/round)]))))))
-
