@@ -95,7 +95,6 @@
                   (state/apply-selection selection)
                   (dissoc :selection))
       drag (let [{dx :x, dy :y, drag-cards :cards} drag
-                 [x y] (drag/mouse-pos dx dy)
                  [tx ty ti] (drag/drag-target drag piles)
                  {old-cards :cards} (state/get-pile state tx ty)
                  new-cards (cond
