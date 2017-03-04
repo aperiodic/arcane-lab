@@ -133,6 +133,7 @@ div.box, div.badge, div.ghost, div.overlay, div.dfc-back-container, div#footer {
 
 div#drop-target.overlay {
   height: 5px;
+  width: 214px;
   box-shadow: 0px 0px 10px 3px #bd24bd;
   border-radius: 2px;
 }
@@ -142,8 +143,17 @@ div#drop-target.overlay {
   z-index: 3;
 }
 
+.card > img {
+  width: 222px;
+  height: 319px;
+}
+
 #selection {
   z-index: 4;
+}
+
+#drag-target {
+  width: 222px;
 }
 
 #hud {

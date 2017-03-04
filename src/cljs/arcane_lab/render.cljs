@@ -37,9 +37,7 @@
                    :style #js {:left (+ x dx)
                                :top (+ y dy)}
                    :key id}
-              (dom/img #js {:src img-src, :title name
-                            :width c/card-width
-                            :height c/card-height})
+              (dom/img #js {:src img-src, :title name})
               (if dropped?
                 (dom/div #js {:className "dropped-marker"}))))))
 
@@ -61,7 +59,6 @@
                              :className "ghost"
                              :style #js {:left tx
                                          :top ty
-                                         :width c/card-width
                                          :height target-height}})
                (if (number? insertion-index)
                  (let [margin 4]
@@ -69,8 +66,7 @@
                                :className "overlay"
                                :style #js {:left (+ tx margin)
                                            :top (+ ty (* insertion-index c/pile-stride)
-                                                   (- 2))
-                                           :width (- c/card-width (* 2 margin))}})))
+                                                   (- 2))}})))
                (apply dom/div #js {:id "drag" :className "pile"}
                       (map #(card % 0 0) (:cards drag)))))))
 
