@@ -76,9 +76,9 @@
     (let [{dx :x dy :y} (:drag state)]
       (apply dom/div #js {:className "dfc-back-container"
                           :style #js {:left (+ dx c/card-width), :top dy}}
-             (map-indexed (fn [i card]
-                            (if card
-                              (card card 0 (* i c/pile-stride))))
+             (map-indexed (fn [i c]
+                            (if c
+                              (card c 0 (* i c/pile-stride))))
                           (map :reverse (get-in state [:drag :cards])))))))
 
 (defn dfc-preloader
