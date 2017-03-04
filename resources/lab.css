@@ -98,6 +98,15 @@ div.box, div.badge, div.ghost, div.overlay, div.dfc-back-container, div#footer {
   outline: 3px solid #39C527;
 }
 
+.dropped-marker {
+  height: 319px;
+  width: 222px;
+  position: absolute;
+  top: 0px;
+
+  background: rgba(166, 128, 217, 0.33);
+}
+
 .badge {
   width: 2em;
 

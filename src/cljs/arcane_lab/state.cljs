@@ -26,6 +26,10 @@
           state
           (map f (state->piles state))))
 
+(defn map-cards
+  [f state]
+  (map-piles #(piles/map-cards f %) state))
+
 (defn get-pile
   [state x y]
   (get-in state [:piles y x]))

@@ -38,13 +38,14 @@
               drag-start (-> (first selected-cards)
                            (select-keys [:x :y]))
               drag-pile (piles/make-drag-pile selected-cards dx dy drag-start)
-              state' (reduce (fn [state {px :x, py :y, cards :cards}]
-                               (let [cards' (remove :selected? cards)]
-                                 (if (empty? cards')
-                                   (state/remove-pile state px py)
-                                   (state/add-pile state (piles/make-pile cards' px py)))))
-                             state
-                             piles-in-selection)]
+              state' (->> (reduce (fn [state {px :x, py :y, cards :cards}]
+                                   (let [cards' (remove :selected? cards)]
+                                     (if (empty? cards')
+                                       (state/remove-pile state px py)
+                                       (state/add-pile state (piles/make-pile cards' px py)))))
+                                 state
+                                 piles-in-selection)
+                       (state/map-cards #(assoc % :dropped? false)))]
           (assoc state'
                  :drag drag-pile
                  :drag-target (drag/drag-target drag-pile (:piles state'))))
@@ -55,9 +56,10 @@
               pile-cards' (remove #(= (:id %) dragged-card-id) (:cards pile))
               first-card? (= (-> pile :cards (nth 0) :id) dragged-card-id)
               drag-start (select-keys card-under-mouse [:x :y])
-              state' (if (empty? pile-cards')
-                       (state/remove-pile state px py)
-                       (state/add-pile state (piles/make-pile pile-cards' px py)))
+              state' (->> (if (empty? pile-cards')
+                            (state/remove-pile state px py)
+                            (state/add-pile state (piles/make-pile pile-cards' px py)))
+                       (state/map-cards #(assoc % :dropped? false)))
               drag (piles/make-drag-pile [card-under-mouse] dx dy drag-start first-card?)]
           (assoc state' :drag drag :drag-target (drag/drag-target drag (:piles state'))))
 
@@ -93,7 +95,9 @@
       selection (-> state
                   (state/apply-selection selection)
                   (dissoc :selection))
-      drag (let [{dx :x, dy :y, drag-cards :cards} drag
+      drag (let [{dx :x, dy :y, d-cs :cards} drag
+                 highlight? (not (:selected? (first d-cs)))
+                 drag-cards (map #(assoc % :dropped? highlight?) d-cs)
                  [tx ty ti] (drag/drag-target drag piles)
                  {old-cards :cards} (state/get-pile state tx ty)
                  new-cards (cond

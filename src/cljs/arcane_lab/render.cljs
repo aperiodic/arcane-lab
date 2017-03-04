@@ -32,14 +32,16 @@
 (defn card
   ([card] (card card 0 0))
   ([card dx dy]
-   (let [{:keys [name id img-src x y selected?]} card]
+   (let [{:keys [name id img-src x y selected? dropped?]} card]
      (dom/div #js {:className (str "card" (if selected? " selected"))
                    :style #js {:left (+ x dx)
                                :top (+ y dy)}
                    :key id}
               (dom/img #js {:src img-src, :title name
                             :width c/card-width
-                            :height c/card-height})))))
+                            :height c/card-height})
+              (if dropped?
+                (dom/div #js {:className "dropped-marker"}))))))
 
 (defn pile
   [pile]

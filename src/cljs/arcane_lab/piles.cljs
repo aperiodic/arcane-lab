@@ -43,10 +43,14 @@
    {:cards (reposition-cards cards x y)
     :x x, :y y, :height (pile-height {:cards cards})}))
 
+(defn map-cards
+  [f pile]
+  (update pile :cards #(map f %)))
+
 (defn make-drag-pile
   ([cards x y card-picked-pos] (make-drag-pile cards x y card-picked-pos false))
   ([cards x y card-picked-pos first-card-picked?]
-   (-> (make-pile cards x y)
+   (-> (make-pile (map #(assoc % :dropped? false) cards) x y)
      (assoc :moved? false
             :cards-orig-pos card-picked-pos
             :first-card-picked? first-card-picked?
