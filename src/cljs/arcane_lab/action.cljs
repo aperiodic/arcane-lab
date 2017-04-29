@@ -96,10 +96,14 @@
                   (state/apply-selection selection)
                   (dissoc :selection))
       drag (let [{dx :x, dy :y, d-cs :cards} drag
-                 highlight? (not (:selected? (first d-cs)))
-                 drag-cards (map #(assoc % :dropped? highlight?) d-cs)
                  [tx ty ti] (drag/drag-target drag piles)
                  {old-cards :cards} (state/get-pile state tx ty)
+                 highlight? (and (not (:selected? (first d-cs)))
+                                 (not= ti :below-pile)
+                                 (or (= ti :no-pile)
+                                     (< ti (count old-cards)))
+                                 (pos? (count old-cards)))
+                 drag-cards (map #(assoc % :dropped? highlight?) d-cs)
                  new-cards (cond
                             (= ti :no-pile) drag-cards
                             (or (= ti :below-pile) (= ti :above-pile)) (concat old-cards drag-cards)
