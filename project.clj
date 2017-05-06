@@ -18,7 +18,8 @@
                  [org.omcljs/om "0.9.0"]
                  [ring "1.3.2"]
                  [ring/ring-defaults "0.1.3"]
-                 [org.slf4j/slf4j-nop "1.7.6"]]
+                 [org.slf4j/slf4j-nop "1.7.6"]
+                 [useful "0.8.8"]]
   :profiles {:dev {:plugins [[lein-cljsbuild "1.1.3"]
                              [lein-ring "0.9.7"]]}}
   :jvm-opts ^:replace ["-Xmx1024m"]
