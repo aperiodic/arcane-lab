@@ -129,11 +129,12 @@
   [card]
   (set/rename-keys card snakes->camels))
 
-(defn process-card
-  "Pre-process a card to:
-    1 - keywordize colors
-    2 - keywordize rarity with words->key
-    3 - parse collector number as an integer"
+(defn keywordize-and-categorize
+  "Process a card by:
+    1 - keywordizing colors
+    2 - keywordizing with words->key
+    3 - parsing collector number as an integer (if possible)
+    4 - add the boolean predicate field :dfc?"
   [card]
   (-> card
     (update :colors (partial mapv words->key))
@@ -223,8 +224,13 @@
 
 (defn process-booster-set
   "Pre-process a set to:
-    1 - group cards by rarity
-    2 - change string values in booster specs to keywords"
+    - link the two halves of DFCs
+    - remove extraneous cards that are not printed in booster packs
+    - group cards by rarity (with DFCs in their own rarity)
+    - change string values in booster specs to keywords
+    - remove the marketing slot from booster specs
+    - perform any special processing particular to the set
+  "
   [set]
   (let [keywordize-string (fn [x]
                             (if (string? x)
@@ -252,13 +258,14 @@
                    (json/decode true)
                    ;; EMN comes from its own data file because the MtGJSON
                    ;; version has bad data from Gatherer that they refuse to fix
-                   (assoc :EMN (data/eldritch-moon)))]
+                   (assoc :EMN (data/eldritch-moon)))
+        process-card (comp keywordize-and-categorize summon-snakes)]
     (into {} (for [[code set] raw-sets
                    :when (and (not= (:type set) "promo")
                               (not (contains? ignored-sets code)))]
                [code
                 (cond-> set
-                  :always (update :cards #(map (comp process-card summon-snakes) %))
+                  :always (update :cards (partial map process-card))
                   :always (set/rename-keys {:releaseDate :release-date})
                   (:booster set) (assoc :sealed-format
                                         (get sets/sealed-formats
