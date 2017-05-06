@@ -20,7 +20,8 @@
       :otherwise (color->index (first colors) 0))))
 
 (defn abbrev->color
-  "Turn an abbreviated color string (the kind found in costs, e.g. 'G' or 'U') into a color keyword."
+  "Turn an abbreviated color string (the kind found in costs, e.g. 'G' or 'U')
+  into a color keyword."
   [abbrev]
   (case abbrev
     "W" :white

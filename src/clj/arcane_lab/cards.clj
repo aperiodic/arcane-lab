@@ -1,6 +1,8 @@
 (ns arcane-lab.cards
-  (:require [arcane-lab.data :as data]
+  (:require [arcane-lab.color :as color]
+            [arcane-lab.data :as data]
             [arcane-lab.sets :as sets]
+            [arcane-lab.useful :refer [any?]]
             [arcane-lab.utils :refer [fractional? integral? rand-seed sample
                                       seeded-rng words->key]]
             [bigml.sampling.simple]
@@ -35,6 +37,23 @@
 (defn dfc?
   [card]
   (= (:layout card) "double-faced"))
+
+(defn split-card?
+  [card]
+  (or (= (:layout card) "split")
+      (= (:layout card) "aftermath")))
+
+(defn composite-card?
+  [card]
+  (or (split-card? card) (dfc? card)))
+
+(defn second-part?
+  "Return true if this card is the second half of a card, meaning the other part
+  of a split card or the back of a double-faced card (flip cards not supported
+  yet)."
+  [card]
+  (and (number? (:number card))
+       (fractional? (:number card))))
 
 (defn melded-card?
   [card]
@@ -110,6 +129,20 @@
           (catch java.lang.NumberFormatException _
             number-string))))))
 
+(defn fix-split-color-id
+  "Cards with a split layout sometimes do not have the correct color identity
+  filled out, which should include both halves of the card."
+  [card]
+  (if-not (split-card? card)
+    card
+    (let [{:keys [other-part]} card
+          ids (-> (concat (:color-identity card ) (:color-identity other-part))
+                distinct
+                vec)]
+      (-> card
+        (assoc :color-identity ids)
+        (assoc-in [:other-part :color-identity] ids)))))
+
 (def field-translations
   {:colorIdentity :color-identity
    :manaCost :mana-cost
@@ -135,14 +168,15 @@
     1 - keywordizing colors & color identities
     2 - keywordizing with words->key
     3 - parsing collector number as an integer (if possible)
-    4 - add the boolean predicate field :dfc?"
+    4 - add the boolean predicate fields :dfc? and :composite?"
   [card]
   (-> card
     (update :colors (partial mapv words->key))
     (update :color-identity (partial mapv color/abbrev->color))
     (update :rarity words->key)
     (update :number parse-collector-number)
-    (assoc :dfc? (dfc? card))))
+    (assoc :dfc? (dfc? card))
+    (assoc :composite? (composite-card? card))))
 
 (defn front-side?
   [card]
@@ -183,35 +217,35 @@
    :EMN #(assoc % :booster shadows-block-boosters)
    :KLD #(assoc % :booster normal-booster)}) ; mtgjson data has a draft matters slot for KLD (?!)
 
+(defn link-composite
+  "Find the other part of a composite card in the set and return an updated
+  version of composite-card that has the other part in the :other-part field. If
+  the card is double-faced, the other part is also added in the :reverse field."
+  [composite-card set]
+  (if-not (:composite? composite-card)
+    composite-card
+    (let [{this-name :name, names :names} composite-card
+          {[other-name] false} (group-by (partial = this-name) names)
+          other-part (->> (:cards set)
+                       (filter #(= (:name %) other-name))
+                       first)]
+
+      (cond-> (assoc composite-card
+                     :other-part (dissoc other-part :other-part)
+                     :names [this-name other-name])
+        (:dfc? composite-card) (assoc :reverse (dissoc other-part :reverse))
+        (split-card? composite-card) fix-split-color-id))))
+
+(defn link-composites
+  [set]
+  (update set :cards (fn [cards] (map #(link-composite % set) cards))))
+
 (def dfc-sets
   "Note that Origins should not be here because its DFCs do not get their own
   sheet and booster slots, so they work fine as regular old mythics."
   #{:ISD :DKA :SOI :EMN})
 
-(defn link-other-side
-  "Find the other side of dfc-card in the set and return an udpated version of
-  dfc-card that has its entire other side in the :reverse field."
-  [dfc-card set]
-  (if-not (:dfc? dfc-card)
-    dfc-card
-    (let [{this-name :name, names :names} dfc-card
-          {[other-name] false} (group-by (partial = this-name) names)
-          reverse-side (->> (:cards set)
-                         (filter #(= (:name %) other-name))
-                         first)]
-
-      (assoc dfc-card
-             :reverse (dissoc reverse-side :reverse)
-             :names [this-name other-name]))))
-
-(defn link-dfcs
-  [set]
-  (if-not (contains? dfc-sets (-> set :code keyword))
-    set
-    (update set :cards (fn [cards]
-                         (map #(link-other-side % set) cards)))))
-
-(defn move-dfc-cards
+(defn move-dfcs
   "Move the dfcs in the given cards map of a set to their own sheet, removing
   them from the normal rarity fields."
   [set]
@@ -227,7 +261,7 @@
 
 (defn process-booster-set
   "Pre-process a set to:
-    - link the two halves of DFCs
+    - link the two halves of split cards and DFCs
     - remove extraneous cards that are not printed in booster packs
     - group cards by rarity (with DFCs in their own rarity)
     - change string values in booster specs to keywords
@@ -241,12 +275,13 @@
                               x))
         code (-> set :code keyword)
         special-processor (special-booster-set-processor code identity)
-        extraneous-card? (extraneous-card-predicate code (constantly false))]
+        extraneous-card? (any?
+                           second-part?
+                           (extraneous-card-predicate code (constantly false)))]
     (-> set
-      link-dfcs
       (update :cards (partial remove extraneous-card?))
       (update :cards (partial group-by :rarity))
-      move-dfc-cards
+      move-dfcs
       (update :booster (partial postwalk keywordize-string))
       (update :booster (partial remove #{:marketing}))
       special-processor)))
@@ -270,6 +305,7 @@
                 (cond-> set
                   :always (update :cards (partial map process-card))
                   :always (set/rename-keys {:releaseDate :release-date})
+                  :always link-composites
                   (:booster set) (assoc :sealed-format
                                         (get sets/sealed-formats
                                              code
