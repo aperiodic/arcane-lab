@@ -36,7 +36,7 @@
   ([] (site-routes (atom-bucket/init)))
   ([bucket]
    (routes
-     (GET "/" [] (resp/redirect "/4AER2KLD"))
+     (GET "/" [] (resp/redirect "/6AKH"))
 
      (GET "/decks/:deck-hash" req
           (cached-html-resp (resp/resource-response "/index.html") req))
