@@ -52,6 +52,7 @@
   [card]
   (-> card
     (rename-keys {:dfc? :dfc})
+    cards/summon-camels
     (select-keys [:name :names :multiverseid :rarity :colors :manaCost :cmc :dfc :reverse])))
 
 (defn- edn-resp

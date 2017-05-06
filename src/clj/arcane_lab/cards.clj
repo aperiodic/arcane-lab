@@ -109,6 +109,26 @@
           (catch java.lang.NumberFormatException _
             number-string))))))
 
+(def field-translations
+  {:colorIdentity :color-identity
+   :manaCost :mana-cost
+   :mciNumber :mci-number
+   :imageName :image-name})
+
+(def camels->snakes field-translations)
+(def snakes->camels (into {} (for [[c s] camels->snakes]
+                               [s c])))
+
+(defn summon-snakes
+  "Transmute the camelCased field names to snake-style."
+  [card]
+  (set/rename-keys card camels->snakes))
+
+(defn summon-camels
+  "Transmute snake-style the field names to camelCased."
+  [card]
+  (set/rename-keys card snakes->camels))
+
 (defn process-card
   "Pre-process a card to:
     1 - keywordize colors
@@ -238,7 +258,7 @@
                               (not (contains? ignored-sets code)))]
                [code
                 (cond-> set
-                  :always (update :cards (partial map process-card))
+                  :always (update :cards #(map (comp process-card summon-snakes) %))
                   :always (set/rename-keys {:releaseDate :release-date})
                   (:booster set) (assoc :sealed-format
                                         (get sets/sealed-formats
