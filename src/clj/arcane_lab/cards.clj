@@ -1,7 +1,8 @@
 (ns arcane-lab.cards
   (:require [arcane-lab.data :as data]
             [arcane-lab.sets :as sets]
-            [arcane-lab.utils :refer [rand-seed sample seeded-rng words->key]]
+            [arcane-lab.utils :refer [fractional? integral? rand-seed sample
+                                      seeded-rng words->key]]
             [bigml.sampling.simple]
             [cheshire.core :as json]
             [clojure.java.io :as io]
@@ -146,7 +147,8 @@
   [card]
   (if-not (:dfc? card)
     true
-    (zero? (mod (:number card) 1.0))))
+    (and (number? (:number card))
+         (integral? (:number card)))))
 
 (def shadows-block-boosters
   (concat [(vec rare-slot)]

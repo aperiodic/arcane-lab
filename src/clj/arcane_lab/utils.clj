@@ -6,6 +6,14 @@
   (:import java.security.MessageDigest
            java.util.Random))
 
+(defn integral?
+  [n]
+  (zero? (mod n 1)))
+
+(defn fractional?
+  [n]
+  (pos? (mod n 1)))
+
 (defn str->long
   [x]
   (let [str-x (if (char? x) (str x) x)]
