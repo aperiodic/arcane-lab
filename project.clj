@@ -21,7 +21,7 @@
                  [org.slf4j/slf4j-nop "1.7.6"]]
   :profiles {:dev {:plugins [[lein-cljsbuild "1.1.3"]
                              [lein-ring "0.9.7"]]}}
-  :jvm-opts ["-Xmx512m"]
+  :jvm-opts ^:replace ["-Xmx1024m"]
 
   :ring {:handler arcane-lab.site/handler}
   :source-paths ["src/cljs" "src/clj" "src/cljc"]
