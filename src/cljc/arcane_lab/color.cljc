@@ -19,6 +19,16 @@
       (> (count colors) 1) 5
       :otherwise (color->index (first colors) 0))))
 
+(defn abbrev->color
+  "Turn an abbreviated color string (the kind found in costs, e.g. 'G' or 'U') into a color keyword."
+  [abbrev]
+  (case abbrev
+    "W" :white
+    "U" :blue
+    "B" :black
+    "R" :red
+    "G" :green))
+
 (defn cost->colortype
   "Return the color type indicated by a mana cost. If the cost contains only one
   color, return that color as a keyword. If it contains multiple colors, then

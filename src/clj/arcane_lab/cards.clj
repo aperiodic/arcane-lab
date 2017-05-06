@@ -132,13 +132,14 @@
 
 (defn keywordize-and-categorize
   "Process a card by:
-    1 - keywordizing colors
+    1 - keywordizing colors & color identities
     2 - keywordizing with words->key
     3 - parsing collector number as an integer (if possible)
     4 - add the boolean predicate field :dfc?"
   [card]
   (-> card
     (update :colors (partial mapv words->key))
+    (update :color-identity (partial mapv color/abbrev->color))
     (update :rarity words->key)
     (update :number parse-collector-number)
     (assoc :dfc? (dfc? card))))
