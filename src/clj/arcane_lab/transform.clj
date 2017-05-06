@@ -7,8 +7,10 @@
   [card]
   (let [key->words-ish #(-> % name (str/replace "-" " "))]
     (-> card
-      (update-in [:colors] (partial mapv key->words-ish))
-      (update-in [:rarity] key->words-ish))))
+      (update :colors (partial mapv key->words-ish))
+      (update :rarity key->words-ish)
+      (update :number str)
+      (dissoc :dfc? :composite?))))
 
 (defn serialize-sets
   [magic-sets]
