@@ -54,7 +54,7 @@
      (assoc :moved? false
             :cards-orig-pos card-picked-pos
             :first-card-picked? first-card-picked?
-            :dfcs? (boolean (some :dfc cards))))))
+            :dfcs? (boolean (some :dfc? cards))))))
 
 (defn move-drag-pile-to
   [drag-pile x y]

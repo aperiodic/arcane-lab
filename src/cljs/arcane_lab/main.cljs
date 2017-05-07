@@ -122,8 +122,8 @@
                        [rare] (piles/x-of-column-indexed i) c/half-gutter))
         rare-piles (map-indexed rare->pile (sort-by color/wubrggc-sort rares))
         cost->col color/cost->colortype
-        color->non-rares (group-by (fn [{:keys [colors manaCost] :as card}]
-                                     (if-let [cost-color (cost->col manaCost)]
+        color->non-rares (group-by (fn [{:keys [colors mana-cost] :as card}]
+                                     (if-let [cost-color (cost->col mana-cost)]
                                        cost-color
                                        (cond
                                          (empty? colors) :colorless

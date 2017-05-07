@@ -50,10 +50,8 @@
 
 (defn full-card->client-card
   [card]
-  (-> card
-    (rename-keys {:dfc? :dfc})
-    cards/summon-camels
-    (select-keys [:name :names :multiverseid :rarity :colors :manaCost :cmc :dfc :reverse])))
+  (select-keys card [:name :names :multiverseid :rarity :colors :color-identity
+                     :mana-cost :cmc :dfc? :reverse]))
 
 (defn- edn-resp
   ([thing] (edn-resp thing 200 {}))
