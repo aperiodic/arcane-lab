@@ -12,12 +12,12 @@
 (defn wubrggc-sort
   "Sort cards by WUBRG, with gold cards followed by colorless ones at the end."
   [card]
-  (let [{:keys [colors]} card
-        color-count (count colors)]
-    (cond
-      (zero? color-count) 6
-      (> (count colors) 1) 5
-      :otherwise (color->index (first colors) 0))))
+  (let [{:keys [color-identity]} card]
+    (case (count color-identity)
+      0 6
+      1 (color->index (first color-identity) 0)
+      ; if two or more colors, it's a gold card, so index 5
+      5)))
 
 (defn abbrev->color
   "Turn an abbreviated color string (the kind found in costs, e.g. 'G' or 'U')
@@ -29,6 +29,13 @@
     "B" :black
     "R" :red
     "G" :green))
+
+(defn colors->colortype
+  [colors]
+  (case (count colors)
+    0 :colorless
+    1 (first colors)
+    :gold))
 
 (defn cost->colortype
   "Return the color type indicated by a mana cost. If the cost contains only one

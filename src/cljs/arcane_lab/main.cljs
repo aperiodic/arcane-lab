@@ -111,6 +111,12 @@
 
 (def blank-state {:piles (sorted-map)})
 
+(defn card->sort-color
+  [card]
+  (if (:dfc? card)
+    (color/colors->colortype (:colors card))
+    (color/colors->colortype (:color-identity card))))
+
 (defn sealed-pool-piles
   [cards]
   (let [cards (remove basic-land? cards)
@@ -121,15 +127,7 @@
                      (piles/make-pile
                        [rare] (piles/x-of-column-indexed i) c/half-gutter))
         rare-piles (map-indexed rare->pile (sort-by color/wubrggc-sort rares))
-        cost->col color/cost->colortype
-        color->non-rares (group-by (fn [{:keys [colors mana-cost] :as card}]
-                                     (if-let [cost-color (cost->col mana-cost)]
-                                       cost-color
-                                       (cond
-                                         (empty? colors) :colorless
-                                         (> (count colors) 1) :gold
-                                         :otherwise (first colors))))
-                                   others)
+        color->non-rares (group-by card->sort-color others)
         colors-and-xs (reduce (fn [cs-&-ps color]
                                 (let [last-x (-> cs-&-ps
                                                (nth (dec (count cs-&-ps)) nil)
