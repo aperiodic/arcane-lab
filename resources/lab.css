@@ -146,6 +146,8 @@ div#drop-target.overlay {
 .card > img {
   width: 222px;
   height: 310px;
+  -webkit-mask-image: url(/card-mask.png);
+  mask-image: url(/card-mask.png);
 }
 
 #selection {
