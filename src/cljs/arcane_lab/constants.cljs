@@ -28,4 +28,3 @@
 
 ;; not technically constant, but will be for my lifetime
 (def ts-digits (-> (js/Date.) .getTime (/ 1000) int str count))
-
