@@ -99,8 +99,8 @@ div.box, div.badge, div.ghost, div.overlay, div.dfc-back-container, div#footer {
 }
 
 .dropped-marker {
-  height: 319px;
-  width: 222px;
+  height: 351px;
+  width: 244px;
   position: absolute;
   top: 0px;
 
@@ -144,8 +144,8 @@ div#drop-target.overlay {
 }
 
 .card > img {
-  width: 222px;
-  height: 310px;
+  width: 244px;
+  height: 351px;
   -webkit-mask-image: url(/card-mask.png);
   mask-image: url(/card-mask.png);
 }
@@ -155,7 +155,7 @@ div#drop-target.overlay {
 }
 
 #drag-target {
-  width: 222px;
+  width: 244px;
 }
 
 #hud {

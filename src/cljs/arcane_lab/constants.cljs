@@ -5,10 +5,10 @@
 ;; Constants
 ;;
 
-(def card-width 222)
-(def card-height 319)
+(def card-width 244)
+(def card-height 351)
 
-(def em 18)
+(def em 20)
 
 (def half-card-width (int (half card-width)))
 (def half-card-height (int (half card-height)))
