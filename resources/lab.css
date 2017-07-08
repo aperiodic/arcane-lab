@@ -132,8 +132,8 @@ div.box, div.badge, div.ghost, div.overlay, div.dfc-back-container, div#footer {
 }
 
 div#drop-target.overlay {
-  height: 5px;
-  width: 214px;
+  height: 4px;
+  width: 232px;
   box-shadow: 0px 0px 10px 3px #bd24bd;
   border-radius: 2px;
 }

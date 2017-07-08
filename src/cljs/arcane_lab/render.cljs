@@ -61,12 +61,11 @@
                                          :top ty
                                          :height target-height}})
                (if (number? insertion-index)
-                 (let [margin 4]
+                 (let [margin 6]
                    (dom/div #js {:id "drop-target"
-                               :className "overlay"
-                               :style #js {:left (+ tx margin)
-                                           :top (+ ty (* insertion-index c/pile-stride)
-                                                   (- 2))}})))
+                                 :className "overlay"
+                                 :style #js {:left (+ tx margin)
+                                             :top (+ ty (* insertion-index c/pile-stride) 4)}})))
                (apply dom/div #js {:id "drag" :className "pile"}
                       (map #(card % 0 0) (:cards drag)))))))
 
