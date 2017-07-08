@@ -4,7 +4,7 @@
   :license {:name "GNU General Public License"
             :url "https://gnu.org/licenses/gpl-3.0.txt"}
   :dependencies [[org.clojure/clojure "1.8.0-RC5"]
-                 [org.clojure/clojurescript "1.9.293"]
+                 [org.clojure/clojurescript "1.9.671"]
                  [org.clojure/core.async "0.2.395"]
                  [bigml/sampling "3.0"]
                  [cheshire "5.4.0"]
@@ -20,7 +20,7 @@
                  [ring/ring-defaults "0.1.3"]
                  [org.slf4j/slf4j-nop "1.7.6"]
                  [useful "0.8.8"]]
-  :profiles {:dev {:plugins [[lein-cljsbuild "1.1.3"]
+  :profiles {:dev {:plugins [[lein-cljsbuild "1.1.6"]
                              [lein-ring "0.9.7"]]}}
   :jvm-opts ^:replace ["-Xmx1024m"]
 
