@@ -31,5 +31,7 @@
                         :source-paths ["src/cljs" "src/cljc"]
                         :compiler {:output-to "target/js/arcane-lab.js"
                                    :output-dir "target/js"
+                                   :foreign-libs [{:file "src/js/imagesloaded.js"
+                                                   :provides ["js.imagesloaded"]}]
                                    :optimizations :none
                                    :source-map true}}]})

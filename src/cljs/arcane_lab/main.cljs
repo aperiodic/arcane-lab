@@ -12,6 +12,7 @@
             [clojure.string :as str]
             [goog.events :as events]
             [jamesmacaulay.zelkova.signal :as sig]
+            [js.imagesloaded]
             [om.core :as om :include-macros true]))
 
 (def rand-uuid make-random-uuid)
@@ -66,13 +67,28 @@
 ;; App Setup
 ;;
 
+;; I can't figure out how to put other things in the root om atom since Zelkova
+;; seems to obliterate anything that doesn't come from its signals, hence this
+;; ugly hack of a seperate atom only to track whether to render the loading GIF
+(def !loaded-hack (atom false))
+
+(defn remove-loader
+  [state]
+  (reset! !loaded-hack true)
+  (om/transact! state :images-loaded? (constantly true))
+  (println "images all loaded!"))
+
 (defn start-om
   [state]
   (om/root
     (fn [app owner]
-      (reify om/IRender
+      (reify
+        om/IRender
         (render [_]
-          (render/cards app))))
+          (render/cards app !loaded-hack))
+        om/IDidMount
+        (did-mount [_]
+          (js/imagesLoaded "div#app" #(remove-loader app)))))
     state
     {:target (.getElementById js/document "app")}))
 
@@ -197,7 +213,6 @@
                      str/upper-case)
         current-format (if (re-matches #"([0-9][0-9A-Z]{3})+" url-format)
                          url-format)]
-    (println current-format)
     (async-http/GET "/api/sets?booster-only=1"
                     {:response-format (edn-response-format)
                      :handler (if current-format

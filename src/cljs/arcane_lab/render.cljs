@@ -130,8 +130,10 @@
                       " • Made by Dan Lidral-Porter"))))
 
 (defn cards
-  [state]
+  [state !loaded?]
   (dom/div #js {:id "dom-root"}
+           (if-not @!loaded?
+             (dom/div #js {:id "loader"} (dom/img #js {:src "/egg.gif"})))
            (apply dom/div {:id "piles"}
                   (map pile (state/state->piles state)))
            (drag state)
