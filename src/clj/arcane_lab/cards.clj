@@ -102,6 +102,7 @@
    :9ED #(string? (:number %)) ;; sets have collector numbers like "S1", which are left as strings
                                ;; by the parse-collector-number function below.
    :EMN :melded
+   :XLN #(> (:number %) 279)
    :AKH #(> (:number %) 269)
    :KLD #(> (:number %) 264)
    :ORI #(> (:number %) 272)}) ;; Cards in gatherer but not printed in boosters have number > 272
