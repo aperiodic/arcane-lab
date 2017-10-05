@@ -1,8 +1,10 @@
 # Arcane Lab
 
-The Arcane Lab is a webapp that lets you build Magic: the Gathering sealed pools by interacting directly with the cards.
+The Arcane Lab is a webapp that lets you build Magic: the Gathering sealed pools by arranging cards into piles very similarly to how you do in real life.
 Visit [the production version][prod] to see it in action!
 Currently, it only works on desktop browsers and not on mobile ones.
+
+![Preview of Arcane Lab interface](resources/preview.png)
 
 [prod]: http://labmaniac.com
 
