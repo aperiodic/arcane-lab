@@ -12,6 +12,10 @@ h1, h2, h3, h4, p {
   text-decoration: underline;
 }
 
+/*
+ * UI Bar
+ */
+
 .button {
   margin-right: 0.5em;
   font-weight: bold;
@@ -83,6 +87,15 @@ h1, h2, h3, h4, p {
 #meta > p {
   color: #19150D;
 }
+
+img#gh-ribbon {
+  z-index: 50;
+  pointer-events: initial;
+}
+
+/*
+ * App
+ */
 
 #app {
   position: relative;
