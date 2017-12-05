@@ -5,6 +5,10 @@
             [arcane-lab.state :as state]
             [om.dom :as dom :include-macros true]   ))
 
+(defn- css-translation
+  [x y]
+  (str "translate(" x "px," y "px)"))
+
 (defn selection
   [state]
   (if-let [selection (:selection state)]
@@ -17,25 +21,25 @@
       (dom/div nil
                (dom/div #js {:id "selection"
                              :className "box"
-                             :style #js {:top top
-                                         :left left
+                             :style #js {:transform (css-translation left top)
                                          :width (- right left)
                                          :height (- bottom top)}})
 
                (if (pos? selected-count)
-                 (dom/div #js {:id "counter"
-                               :className "badge"
-                               :style #js {:top (- oy (* 1.25 c/em))
-                                           :left (- ox (* 4 c/em))}}
-                          (pr-str selected-count)))))))
+                 (let [cx (- ox (* 4 c/em))
+                       cy (- oy (* 1.25 c/em))]
+                   (dom/div #js {:id "counter"
+                                 :className "badge"
+                                 :style #js {:transform (css-translation
+                                                          (int cx) (int cy))}}
+                          (str selected-count))))))))
 
 (defn card
   ([card] (card card 0 0))
   ([card dx dy]
    (let [{:keys [name id img-src x y selected? dropped?]} card]
      (dom/div #js {:className (str "card" (if selected? " selected"))
-                   :style #js {:left (+ x dx)
-                               :top (+ y dy)}
+                   :style #js {:transform (css-translation (+ x dx) (+ y dy))}
                    :key id}
               (dom/img #js {:src img-src, :title name})
               (if dropped?
@@ -57,15 +61,16 @@
       (dom/div nil
                (dom/div #js {:id "drag-target"
                              :className "ghost"
-                             :style #js {:left tx
-                                         :top ty
+                             :style #js {:transform (css-translation tx ty)
                                          :height target-height}})
                (if (number? insertion-index)
-                 (let [margin 6]
+                 (let [margin 6
+                       bar-x (+ tx margin)
+                       bar-y (+ ty (* insertion-index c/pile-stride) 4)]
                    (dom/div #js {:id "drop-target"
                                  :className "overlay"
-                                 :style #js {:left (+ tx margin)
-                                             :top (+ ty (* insertion-index c/pile-stride) 4)}})))
+                                 :style #js {:transform (css-translation
+                                                          bar-x bar-y)}})))
                (apply dom/div #js {:id "drag" :className "pile"}
                       (map #(card % 0 0) (:cards drag)))))))
 
@@ -74,7 +79,8 @@
   (if (get-in state [:drag :dfcs?])
     (let [{dx :x dy :y} (:drag state)]
       (apply dom/div #js {:className "dfc-back-container"
-                          :style #js {:left (+ dx c/card-width), :top dy}}
+                          :style #js {:transform (css-translation
+                                                   (+ dx c/card-width) dy)}}
              (map-indexed (fn [i c]
                             (if c
                               (card c 0 (* i c/pile-stride))))
@@ -119,7 +125,7 @@
         max-y (+ (apply max (keys piles))
                  (piles/row-height (get piles (last (keys piles)))))] ;; TODO replace w/last-row fn
     (dom/div #js {:id "footer"
-                  :style #js {:top max-y}}
+                  :style #js {:transform (css-translation 0 max-y)}}
              (dom/div #js {:className "disclaimer"}
                       (dom/strong nil "Magic: the Gathering")
                       " is © Wizards of the Coast"

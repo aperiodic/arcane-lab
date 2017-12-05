@@ -103,7 +103,7 @@ img#gh-ribbon {
   top: 38px;
 }
 
-div.box, div.badge, div.ghost, div.overlay, div.dfc-back-container, div#footer {
+div.box, div.badge, div.ghost, div.overlay, div.dfc-back-container, div#footer, #loader {
   position: absolute;
 }
 
@@ -169,6 +169,10 @@ div#drop-target.overlay {
 
 #drag-target {
   width: 244px;
+}
+
+div.dfc-back-container {
+  z-index: 3;
 }
 
 #hud {
