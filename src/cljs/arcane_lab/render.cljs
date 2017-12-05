@@ -136,9 +136,9 @@
              (dom/div #js {:id "loader"} (dom/img #js {:src "/egg.gif"})))
            (apply dom/div {:id "piles"}
                   (map pile (state/state->piles state)))
+           (dfc state)
            (drag state)
            (selection state)
-           (dfc state)
            (footer state)
            (dfc-preloader state)))
 
