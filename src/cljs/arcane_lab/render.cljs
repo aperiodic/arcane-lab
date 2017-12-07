@@ -38,7 +38,7 @@
   ([card] (card card 0 0))
   ([card dx dy]
    (let [{:keys [name id img-src x y selected? dropped?]} card]
-     (dom/div #js {:className (str "card" (if selected? " selected"))
+     (dom/div #js {:className (if selected? "card selected" "card")
                    :style #js {:transform (css-translation (+ x dx) (+ y dy))}
                    :key id}
               (dom/img #js {:src img-src, :title name})
