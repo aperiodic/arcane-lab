@@ -98,7 +98,8 @@
 (defn hud
   [state]
   (let [trimmed-state (-> (if (contains? state :drag)
-                            (update-in state [:drag :cards] (partial map (comp str :id)))
+                            (update-in state, [:drag :cards]
+                                       (partial map (comp str :id)))
                             state)
                         (update :dfcs (partial map (comp str :id)))
                         (dissoc :piles :selection-triggers))]
