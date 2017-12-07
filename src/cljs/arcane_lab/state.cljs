@@ -73,6 +73,7 @@
         {xs :vertical, ys :horizontal} (:drag-triggers state)
         update? (or (geom/any-lines-between? y y' ys)
                     (geom/any-lines-between? x x' xs)
+                    ;; this ensures target is calculated when drag is started
                     (false? (get-in state [:drag :moved?])))
         [dx' dy'] (drag/drag-pile-pos x' y')
         state' (update state :drag piles/move-drag-pile-to dx' dy')]
