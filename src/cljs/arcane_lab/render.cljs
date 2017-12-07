@@ -90,8 +90,9 @@
   [state]
   (if-let [dfcs (seq (:dfcs state))]
     (dom/div #js {:className "dfc-preloader"}
-             (for [{:keys [img-src]} (map :reverse dfcs)]
+             (for [{:keys [img-src id]} (map :reverse dfcs)]
                (dom/img #js {:src img-src
+                             :key id
                              :style #js {:display "block"}})))))
 
 (defn hud
