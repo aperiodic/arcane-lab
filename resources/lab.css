@@ -165,6 +165,8 @@ div#drop-target.overlay {
 
 #selection {
   z-index: 4;
+  background-color: rgba(57, 197, 39, 0.15);
+  will-change: top, left, width, height;
 }
 
 #drag-target {
