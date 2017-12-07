@@ -70,7 +70,7 @@
   (fn [state]
     (if (:drag state)
       state
-      (let [selection {:start pos, :stop pos}]
+      (let [selection {:start pos, :stop pos, :count 0}]
         (-> state
           (state/apply-selection selection)
           (assoc :selection selection))))))

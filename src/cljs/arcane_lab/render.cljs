@@ -12,10 +12,7 @@
 (defn selection
   [state]
   (if-let [selection (:selection state)]
-    (let [selected-count (->> (state/state->cards state)
-                           (filter :selected?)
-                           count)
-          [ox oy] (:stop selection)
+    (let [selected-count (:count selection)
           [left right top bottom] (piles/selection-edges selection)]
 
       (dom/div nil
@@ -26,7 +23,8 @@
                                          :height (- bottom top)}})
 
                (if (pos? selected-count)
-                 (let [cx (- ox (* 4 c/em))
+                 (let [[ox oy] (:stop selection)
+                       cx (- ox (* 4 c/em))
                        cy (- oy (* 1.25 c/em))]
                    (dom/div #js {:id "counter"
                                  :className "badge"

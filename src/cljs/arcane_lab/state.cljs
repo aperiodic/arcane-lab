@@ -50,10 +50,10 @@
 
 (defn apply-selection
   [state selection]
-  (let [{piles :piles} state]
-    (if-not selection
-      state
-      (map-piles (partial piles/pile-after-selection selection) state))))
+  (let [state' (map-piles (partial piles/pile-after-selection selection) state)]
+    (assoc-in state' [:selection :count] (->> (state->cards state')
+                                           (filter :selected?)
+                                           count))))
 
 (defn update-selection
   [state x' y']
