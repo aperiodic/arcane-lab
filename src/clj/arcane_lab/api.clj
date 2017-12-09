@@ -72,7 +72,7 @@
   (GET "/booster/:set-code" [set-code]
        (let [set-code (-> set-code str/upper-case keyword)]
          (if (cards/booster-set-code? set-code)
-           (edn-resp (cards/booster set-code))
+           (edn-resp (map full-card->client-card (cards/booster set-code)))
            (set-404 set-code))))
 
   (GET "/pool/:pack-spec" [pack-spec]
