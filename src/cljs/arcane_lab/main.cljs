@@ -1,6 +1,7 @@
 (ns arcane-lab.main
   (:require [ajax.core :as async-http]
             [ajax.edn :refer [edn-response-format]]
+            [arcane-lab.card :as card]
             [arcane-lab.color :as color]
             [arcane-lab.constants :as c]
             [arcane-lab.history :as history]
@@ -41,15 +42,6 @@
                       :x c/half-gutter, :y c/half-gutter
                       :selected? false)
       reverse-side (update :reverse add-img-src))))
-
-(defn basic-land?
-  [card]
-  (let [basic-land-names #{"Plains" "Island" "Swamp" "Mountain" "Forest"}]
-    (contains? basic-land-names (:name card))))
-
-(defn rare?
-  [card]
-  (contains? #{:rare :mythic-rare} (:rarity card)))
 
 ;;
 ;; Interface Hackery
@@ -135,9 +127,9 @@
 
 (defn sealed-pool-piles
   [cards]
-  (let [cards (remove basic-land? cards)
-        [rares others] ((juxt (partial filter rare?)
-                              (partial remove rare?))
+  (let [cards (remove card/basic-land? cards)
+        [rares others] ((juxt (partial filter card/rare?)
+                              (partial remove card/rare?))
                         cards)
         rare->pile (fn [i rare]
                      (piles/make-pile
