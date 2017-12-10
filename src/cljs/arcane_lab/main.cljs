@@ -122,8 +122,8 @@
 (defn card->sort-color
   [card]
   (if (:dfc? card)
-    (color/colors->colortype (:colors card))
-    (color/colors->colortype (:color-identity card))))
+    (color/id->category (:colors card))
+    (color/id->category (:color-identity card))))
 
 (defn sealed-pool-piles
   [cards]
@@ -147,7 +147,7 @@
                                     cs-&-ps
                                     (conj cs-&-ps [color x]))))
                               []
-                              color/color-order)
+                              color/categories)
         pile-for-color-at-x (fn [[color x]]
                               (let [col-cards (color->non-rares color)
                                     y (+ c/half-gutter c/card-height c/gutter)]

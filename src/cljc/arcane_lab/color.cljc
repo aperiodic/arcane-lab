@@ -1,6 +1,13 @@
 (ns arcane-lab.color)
 
-(def color-order [:white :blue :black :red :green :gold :colorless])
+(def categories [:white :blue :black :red :green :gold :colorless])
+
+(defn id->category
+  [color-identity]
+  (case (count color-identity)
+    0 :colorless
+    1 (first color-identity)
+    :gold))
 
 (def color->index
   {:white 0
@@ -30,14 +37,7 @@
     "R" :red
     "G" :green))
 
-(defn colors->colortype
-  [colors]
-  (case (count colors)
-    0 :colorless
-    1 (first colors)
-    :gold))
-
-(defn cost->colortype
+(defn cost->category
   "Return the color type indicated by a mana cost. If the cost contains only one
   color, return that color as a keyword. If it contains multiple colors, then
   return `:gold`. If the cost is coloress, return nil."
@@ -64,4 +64,5 @@
         u-cost? :blue
         b-cost? :black
         r-cost? :red
-        g-cost? :green))))
+        g-cost? :green
+        :else :colorless))))
