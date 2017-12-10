@@ -1,5 +1,7 @@
 (ns arcane-lab.card)
 
+(def rarities [:common :uncommon :rare :basic-land])
+
 (defn rare?
   [card]
   (contains? #{:rare :mythic-rare} (:rarity card)))
