@@ -10,7 +10,8 @@
             [clojure.java.io :as io]
             [clojure.set :as set]
             [clojure.string :as str]
-            [clojure.walk :refer [postwalk]]))
+            [clojure.walk :refer [postwalk]]
+            [dlp.useful.map :refer [merge-values]]))
 
 ;;
 ;; Definitions
@@ -565,6 +566,11 @@
 ;; Booster Sampling
 ;;
 
+(defn cards->booster
+  [cards]
+  (-> (group-by :rarity cards)
+    (merge-values :rare :mythic-rare)))
+
 (defn print-booster
   "Takes a print run and an optional booster seed, and returns an updated
   version of the print run with an additional booster pack in the :boosters
@@ -592,7 +598,7 @@
                                 (swap! !booster concat (take qty sheet))
                                 [kind (drop qty sheet)])))]
        (-> (merge print-run sheets')
-         (update :boosters concat [@!booster]))))))
+         (update :boosters concat [(cards->booster @!booster)]))))))
 
 (defn booster
   ([set-code] (booster set-code (rand-seed)))
@@ -616,30 +622,38 @@
 
 (def print-run-switch-threshold (/ 1 36.0))
 
+(defn booster->cards
+  "Flatten a booster to a sequence of cards."
+  [booster]
+  (let [{:keys [common uncommon rare basic-land]} booster
+        stray-cards (->> (dissoc booster :common :uncommon :rare :basic-land)
+                      vals
+                      (apply concat))]
+    (concat common uncommon rare basic-land stray-cards)))
+
 (defn pool
   ([set-codes] (pool set-codes (rand-seed)))
   ([set-codes seed]
    (let [pack-count (frequencies set-codes)
          total-packs (reduce + (vals pack-count))
          rng (seeded-rng seed)]
-     (->> (reduce (fn [{:keys [last-print-run switched-runs? boosters]} [set-code booster-seed]]
-                    (let [print-run' (-> (if (= (:set-code last-print-run) set-code)
-                                           last-print-run
-                                           (print-run set-code (.nextLong rng)))
-                                       (print-booster booster-seed))
-                          switch? (and (< (.nextDouble rng) print-run-switch-threshold)
-                                       (not switched-runs?))]
+     (:boosters
+       (reduce (fn [{:keys [last-print-run switched-runs? boosters]} [set-code booster-seed]]
+                (let [print-run' (-> (if (= (:set-code last-print-run) set-code)
+                                       last-print-run
+                                       (print-run set-code (.nextLong rng)))
+                                   (print-booster booster-seed))
+                      switch? (and (< (.nextDouble rng) print-run-switch-threshold)
+                                   (not switched-runs?))]
 
-                      {:current-print-run (if switch? (print-run set-code (.nextLong rng)) print-run')
-                       :switched-runs? (if (= set-code (:set-code last-print-run))
-                                         (or switched-runs? switch?)
-                                         false)
-                       :boosters (concat boosters [(last (:boosters print-run'))])}))
+                  {:current-print-run (if switch? (print-run set-code (.nextLong rng)) print-run')
+                   :switched-runs? (if (= set-code (:set-code last-print-run))
+                                     (or switched-runs? switch?)
+                                     false)
+                   :boosters (concat boosters [(last (:boosters print-run'))])}))
 
-                  {:current-print-run (print-run (first set-codes) (.nextLong rng))
-                   :switched-runs? false
-                   :boosters []}
+              {:current-print-run (print-run (first set-codes) (.nextLong rng))
+               :switched-runs? false
+               :boosters []}
 
-                  (map vector set-codes (repeatedly total-packs #(.nextLong rng))))
-       :boosters
-       (apply concat)))))
+              (map vector set-codes (repeatedly total-packs #(.nextLong rng))))))))

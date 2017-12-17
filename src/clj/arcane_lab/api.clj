@@ -1,6 +1,7 @@
 (ns arcane-lab.api
   (:require [arcane-lab.bucket :as bucket]
             [arcane-lab.cards :as cards]
+            [arcane-lab.http :refer [param->bool]]
             [arcane-lab.utils :refer [rand-seed str->long]]
             [clojure.set :refer [rename-keys]]
             [clojure.string :as str]
@@ -53,6 +54,13 @@
   (select-keys card [:name :names :multiverseid :rarity :colors :color-identity
                      :mana-cost :cmc :dfc? :reverse]))
 
+(defn client-booster
+  "Convert all the cards in the booster from the full representation to the
+  client-side one."
+  [booster]
+  (into {} (for [[rarity cards] booster]
+             [rarity (map full-card->client-card cards)])))
+
 (defn- edn-resp
   ([thing] (edn-resp thing 200 {}))
   ([thing code] (edn-resp thing code {}))
@@ -69,17 +77,20 @@
             404))
 
 (defroutes booster-routes
-  (GET "/booster/:set-code" [set-code]
+  (GET "/booster/:set-code" [set-code structured]
        (let [set-code (-> set-code str/upper-case keyword)]
-         (if (cards/booster-set-code? set-code)
-           (edn-resp (map full-card->client-card (cards/booster set-code)))
-           (set-404 set-code))))
+         (if-not (cards/booster-set-code? set-code)
+           (set-404 set-code)
+           (let [booster (client-booster (cards/booster set-code))]
+             (edn-resp (if (param->bool structured)
+                         booster
+                         (cards/booster->cards booster)))))))
 
-  (GET "/pool/:pack-spec" [pack-spec]
-       (let [seed (rand-seed)]
-         (resp/redirect (str "/" pack-spec "/" seed))))
+  (GET "/pool/:pack-spec" [pack-spec structured]
+       (resp/redirect (str "/" pack-spec "/" (rand-seed)
+                           (if (param->bool structured) "?structured=1"))))
 
-  (GET "/pool/:pack-spec/:seed" [pack-spec seed]
+  (GET "/pool/:pack-spec/:seed" [pack-spec seed structured]
        (let [set-codes (pack-spec->codes pack-spec)
              booster-count (count set-codes)]
          (cond
@@ -94,9 +105,11 @@
              (edn-resp {:msg msg, :kind "bad-booster-count"} 400))
 
            :otherwise
-           (->> (cards/pool set-codes (str->long seed))
-             (map full-card->client-card)
-             edn-resp)))))
+           (let [boosters (->> (cards/pool set-codes (str->long seed))
+                            (map client-booster))]
+             (edn-resp (if (param->bool structured)
+                         (apply merge-with concat boosters)
+                         (mapcat cards/booster->cards boosters))))))))
 
 (defn set->api-metadata
   "Turn a set into its API representation, which is a subset of its metadata
