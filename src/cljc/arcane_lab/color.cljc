@@ -16,8 +16,10 @@
    :red 3
    :green 4})
 
-(defn wubrggc-sort
-  "Sort cards by WUBRG, with gold cards followed by colorless ones at the end."
+(defn wubrggc-order
+  "Key function to use with sort-by to sort cards in WUBRGGC order, meaning
+  single-colored cards in WUBRG order, followed by gold cards and then colorless
+  cards."
   [card]
   (let [{:keys [color-identity]} card]
     (case (count color-identity)

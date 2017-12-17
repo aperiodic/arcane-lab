@@ -134,7 +134,7 @@
         rare->pile (fn [i rare]
                      (piles/make-pile
                        [rare] (piles/x-of-column-indexed i) c/half-gutter))
-        rare-piles (map-indexed rare->pile (sort-by color/wubrggc-sort rares))
+        rare-piles (map-indexed rare->pile (sort-by color/wubrggc-order rares))
         color->non-rares (group-by card->sort-color others)
         colors-and-xs (reduce (fn [cs-&-ps color]
                                 (let [last-x (-> cs-&-ps
