@@ -1,5 +1,5 @@
 (ns arcane-lab.constants
-  (:require [arcane-lab.util :refer [half]]))
+  (:require [dlp.useful.math :refer [half]]))
 
 ;;
 ;; Constants

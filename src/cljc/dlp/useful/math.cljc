@@ -1,4 +1,4 @@
-(ns arcane-lab.util)
+(ns dlp.useful.math)
 
 (defn half
   [x]

@@ -3,7 +3,7 @@
             [arcane-lab.drag :as drag]
             [arcane-lab.geom :as geom]
             [arcane-lab.piles :as piles]
-            [arcane-lab.util :refer [binary-search]]))
+            [dlp.useful.math :refer [binary-search]]))
 
 (defn state->piles
   [state]

@@ -2,7 +2,6 @@
   (:require [arcane-lab.color :as color]
             [arcane-lab.data :as data]
             [arcane-lab.sets :as sets]
-            [arcane-lab.useful :refer [any?]]
             [arcane-lab.utils :refer [fractional? integral? rand-seed sample
                                       seeded-rng words->key]]
             [bigml.sampling.simple]
@@ -11,6 +10,7 @@
             [clojure.set :as set]
             [clojure.string :as str]
             [clojure.walk :refer [postwalk]]
+            [dlp.useful.fn :as fn]
             [dlp.useful.map :refer [merge-values]]))
 
 ;;
@@ -278,7 +278,7 @@
                               x))
         code (-> set :code keyword)
         special-processor (special-booster-set-processor code identity)
-        extraneous-card? (any?
+        extraneous-card? (fn/any?
                            second-part?
                            (extraneous-card-predicate code (constantly false)))]
     (-> set

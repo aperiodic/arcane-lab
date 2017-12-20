@@ -1,5 +1,5 @@
 (ns arcane-lab.geom
-  (:require [arcane-lab.util :refer [binary-search]]))
+  (:require [dlp.useful.math :refer [binary-search]]))
 
 (defn within?
   "Returns true if the point at (x,y) is within the box defined by left, right,
