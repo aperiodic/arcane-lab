@@ -101,4 +101,3 @@
 (defn add-dfcs
   [state]
   (assoc state :dfcs (filter :dfc? (state->cards state))))
-

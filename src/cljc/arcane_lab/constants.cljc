@@ -19,12 +19,13 @@
 (def pile-spacing (+ card-width gutter))
 
 (def drag-x-offset (half card-width))
-(def drag-y-offset (-> (* 0.4 card-height) int))
+(def drag-y-offset (int (* 0.4 card-height)))
 
 (def mouse-y-offset 48)
 
 (def u-key-code 85)
 (def r-key-code 82)
 
-;; not technically constant, but will be for my lifetime
-(def ts-digits (-> (js/Date.) .getTime (/ 1000) int str count))
+;; Number of base 10 digits in a Unix timestamp. Not technically constant, but
+;; will be for my lifetime
+(def ts-digits 10)

@@ -21,4 +21,3 @@
   ;; of the sorted lines' coordinates
   (not= (binary-search sorted-lines (+ 0.1 c0))
         (binary-search sorted-lines (+ 0.1 c1))))
-
