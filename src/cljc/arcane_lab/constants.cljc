@@ -18,6 +18,8 @@
 (def pile-stride (int (/ card-height 9.5)))
 (def pile-spacing (+ card-width gutter))
 
+(def first-row-y half-gutter)
+
 (def drag-x-offset (half card-width))
 (def drag-y-offset (int (* 0.4 card-height)))
 

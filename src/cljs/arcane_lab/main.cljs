@@ -9,39 +9,15 @@
             [arcane-lab.render :as render]
             [arcane-lab.signal :as signal]
             [arcane-lab.state :as state]
-            [cljs-uuid-utils.core :refer [make-random-uuid]]
+            [arcane-lab.ui :as ui]
+            [arcane-lab.useful :refer [rand-uuid]]
             [clojure.string :as str]
             [goog.events :as events]
             [jamesmacaulay.zelkova.signal :as sig]
             [js.imagesloaded]
             [om.core :as om :include-macros true]))
 
-(def rand-uuid make-random-uuid)
-
 (enable-console-print!)
-
-;;
-;; Card Creation & Sorting
-;;
-
-(defn card-img-src
-  [multiverseid]
-  (str "/img/" multiverseid))
-
-(defn add-img-src
-  [card]
-  (assoc card :img-src (card-img-src (:multiverseid card))))
-
-(defn api-card->client-card
-  [api-card]
-  (let [{:keys [multiverseid]} api-card
-        reverse-side (:reverse api-card)]
-    (cond-> api-card
-      identity add-img-src
-      identity (assoc :id (rand-uuid)
-                      :x c/half-gutter, :y c/half-gutter
-                      :selected? false)
-      reverse-side (update :reverse add-img-src))))
 
 ;;
 ;; Interface Hackery
@@ -119,61 +95,19 @@
 
 (def blank-state {:piles (sorted-map)})
 
-(defn card->sort-color
-  [card]
-  (if (:dfc? card)
-    (color/id->category (:colors card))
-    (color/id->category (:color-identity card))))
+(defn start-app-from-piles!
+  [initial-piles]
+  (start-app-from-state! (reduce (fn [state pile] (state/add-pile state pile))
+                                 blank-state
+                                 initial-piles)))
 
-(defn sealed-pool-piles
-  [cards]
-  (let [cards (remove card/basic-land? cards)
-        [rares others] ((juxt (partial filter card/rare?)
-                              (partial remove card/rare?))
-                        cards)
-        rare->pile (fn [i rare]
-                     (piles/make-pile
-                       [rare] (piles/x-of-column-indexed i) c/half-gutter))
-        rare-piles (map-indexed rare->pile (sort-by color/wubrggc-order rares))
-        color->non-rares (group-by card->sort-color others)
-        colors-and-xs (reduce (fn [cs-&-ps color]
-                                (let [last-x (-> cs-&-ps
-                                               (nth (dec (count cs-&-ps)) nil)
-                                               (nth 1 nil))
-                                      x (if last-x
-                                          (+ last-x c/pile-spacing)
-                                          c/half-gutter)]
-                                  (if (empty? (color->non-rares color))
-                                    cs-&-ps
-                                    (conj cs-&-ps [color x]))))
-                              []
-                              color/categories)
-        pile-for-color-at-x (fn [[color x]]
-                              (let [col-cards (color->non-rares color)
-                                    y (+ c/half-gutter c/card-height c/gutter)]
-                                (piles/make-pile (sort-by :name col-cards) x y)))
-        color-piles (map pile-for-color-at-x colors-and-xs)]
-    (concat rare-piles color-piles)))
+(defn start-app-from-deck!
+  [deck-cards]
+  (start-app-from-piles! (ui/deck->piles deck-cards)))
 
-(defn deck-piles
-  [cards]
-  (map-indexed (fn [i [_ cmc-cards]]
-                 (piles/make-pile (sort-by :name cmc-cards)
-                                  (piles/x-of-column-indexed i) c/half-gutter))
-               (sort-by key (group-by :cmc cards))))
-
-(defn api-cards->init-state
-  [api-cards]
-  (let [cards (map api-card->client-card api-cards)
-        piles (if (> (count cards) 76)
-                (sealed-pool-piles cards)
-                (deck-piles cards))]
-        (reduce (fn [state pile] (state/add-pile state pile)) blank-state piles)))
-
-(defn start-app-from-api-cards!
-  [api-cards]
-  (let [init-state (api-cards->init-state api-cards)]
-    (start-app-from-state! init-state)))
+(defn start-app-from-pool!
+  [pool-cards-by-rarity]
+  (start-app-from-piles! (ui/pool->piles pool-cards-by-rarity)))
 
 (defn halt-app-on-err
   [{:keys [status], {:keys [msg kind]} :response}]
@@ -221,15 +155,17 @@
         (transform-to-deck-ui!)
         (async-http/GET (str "/api/decks/" deck-hash)
                         {:response-format (edn-response-format)
-                         :handler start-app-from-api-cards!
+                         :handler start-app-from-deck!
                          :error-handler halt-app-on-err}))
       ;; otherwise, if we're not loading a deck, we're in the sealed section
       (let [[pack-spec seed] components]
         (if-let [saved-state (history/load-state pack-spec seed)]
           (start-app-from-state! saved-state)
-          (async-http/GET (str "/api/pool/" (or pack-spec default-pack-spec) "/" seed)
+          (async-http/GET (str "/api/pool/" (or pack-spec default-pack-spec)
+                               "/" seed
+                               "?structured=1")
                           {:response-format (edn-response-format)
-                           :handler start-app-from-api-cards!
+                           :handler start-app-from-pool!
                            :error-handler halt-app-on-err}))))))
 
 (get-state-and-start-app!)
