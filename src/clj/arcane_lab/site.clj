@@ -4,9 +4,11 @@
             [arcane-lab.bucket.atom :as atom-bucket]
             [arcane-lab.bucket.file :as file-bucket]
             [arcane-lab.cards :as cards]
+            [arcane-lab.http :as http]
             [arcane-lab.images :as images]
             [arcane-lab.import :as import]
             [arcane-lab.pages.import :as import-page]
+            [arcane-lab.pages.pool :as pool-page]
             [arcane-lab.utils :refer [rand-seed sha1-str wrap-ignore-trailing-slash]]
             [clojure.string :as str]
             [compojure.core :refer [context routes GET POST]]
@@ -72,8 +74,14 @@
           (let [seed (rand-seed)]
             (resp/redirect (str "/" pack-spec "/" seed))))
 
-     (GET "/:pack-spec/:seed" req
-          (cached-html-resp (resp/resource-response "/index.html") req))
+     (GET "/:pack-spec/:seed" [pack-spec seed :as req]
+       (if (= pack-spec "favicon.ico")
+         (route/not-found "no favicon here")
+         (let [seed (http/parse-int seed)
+               pool (cards/pool-by-sheets (api/pack-spec->codes pack-spec) seed)]
+            (-> (pool-page/render pool)
+              (html-resp)
+              (cached-html-resp req)))))
 
      (route/not-found "You are lost in the Maze of Ith. Go back!"))))
 

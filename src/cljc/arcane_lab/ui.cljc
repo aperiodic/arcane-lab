@@ -20,20 +20,28 @@
   [card]
   (assoc card :img-src (card-img-src (:multiverseid card))))
 
-(defn api-card->client-card
+(defn api-card->ui-card
   [api-card]
   (cond-> api-card
     :always add-img-src
-    :always (assoc :id (rand-uuid)
-                   :x c/half-gutter, :y c/half-gutter
-                   :selected? false)
+    :always (->
+              (assoc :id (rand-uuid), :selected? false)
+              (update :x (fnil identity c/half-gutter))
+              (update :y (fnil identity c/half-gutter)))
     (:reverse api-card) (update :reverse add-img-src)))
 
-(defn clientify-pile
-  "Transform all the cards in the pile to be full client cards by augmenting
-  them using `api-card->client-card`"
+(defn ui-pile
+  "Transform all the cards in the pile to be full UI cards by augmenting
+  them using `api-card->ui-card`"
   [pile]
-  (update pile :cards (partial map api-card->client-card)))
+  (update pile :cards (partial map api-card->ui-card)))
+
+(defn ui-pool
+  "Transform all the cards in the pool to be full UI cards by augmenting
+  them using `api-card->ui-card`"
+  [pool]
+  (into {} (for [[sheet cards] pool]
+             [sheet (map api-card->ui-card cards)])))
 
 ;;
 ;; Initial UI State Calculation
@@ -68,7 +76,7 @@
 
 (defn pool->piles
   [cards-by-sheet]
-  (let [{rares :rares, :as all-cats} (pool-categories cards-by-sheet)
+  (let [{rares :rares, :as all-cats} (-> (pool-categories cards-by-sheet) ui-pool)
         others (dissoc all-cats :rares)
         categories-with-cards (remove #(empty? (get others %)) color/categories)
         other-pile (fn [i category]
@@ -76,12 +84,13 @@
                                                 (sort-by :name))))]
     (->> (concat (map-indexed rare-pile rares)
                  (map-indexed other-pile categories-with-cards))
-      (map clientify-pile))))
+      (map ui-pile))))
 
 (defn deck->piles
   [deck-cards]
-  (->> (map-indexed (fn [i [_ cmc-cards]]
-                      (piles/make-pile (sort-by :name cmc-cards)
-                                       (piles/x-of-column-indexed i) c/half-gutter))
-                    (sort-by key (group-by :cmc deck-cards)))
-    (map clientify-pile)))
+  (->> deck-cards
+    (map api-card->ui-card)
+    (sort-by key (group-by :cmc deck-cards))
+    (map-indexed (fn [i [_ cmc-cards]]
+                   (piles/make-pile (sort-by :name cmc-cards)
+                                    (piles/x-of-column-indexed i) c/half-gutter)))))

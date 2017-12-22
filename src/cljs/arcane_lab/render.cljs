@@ -138,14 +138,17 @@
 (defn cards
   [state !loaded?]
   (dom/div #js {:id "dom-root"}
-           (if-not @!loaded?
-             (dom/div #js {:id "loader"} (dom/img #js {:src "/egg.gif"})))
            (apply dom/div {:id "piles"}
                   (map pile (state/state->piles state)))
            (dfc state)
            (drag state)
            (selection state)
            (footer state)
+           (if-not @!loaded?
+             (dom/div #js {:id "loader"}
+                      (dom/p #js {}
+                             (dom/img #js {:src "/loading.svg"
+                                           :width "200px", :height "200px"}))))
            (dfc-preloader state)))
 
 (defn- navigate!

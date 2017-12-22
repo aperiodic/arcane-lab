@@ -93,6 +93,25 @@ img#gh-ribbon {
   pointer-events: initial;
 }
 
+#loader {
+  transform: translate(116px, 148px);
+  z-index: 5;
+
+  width: 320px;
+  height: 320px;
+  border-radius: 16px;
+  background-color: #9099a27d;
+  text-align: center;
+
+  font-size: 2.7em;
+  font-weight: bolder;
+  text-shadow: 0px 0px 2px black;
+}
+
+#loader > p {
+  color: #eca611;
+}
+
 /*
  * App
  */

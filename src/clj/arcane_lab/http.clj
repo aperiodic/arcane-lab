@@ -11,3 +11,7 @@
   (and (boolean parameter-value)
        ;; if it's set and not in the negatives list, default to truthy
        (not (contains? negative-values parameter-value))))
+
+(defn parse-int
+  [int-str]
+  (Long/parseLong int-str))

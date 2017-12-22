@@ -657,3 +657,8 @@
                :boosters []}
 
               (map vector set-codes (repeatedly total-packs #(.nextLong rng))))))))
+
+(defn pool-by-sheets
+  ([set-codes] (pool-by-sheets set-codes (rand-seed)))
+  ([set-codes seed]
+   (apply merge-with concat (pool set-codes seed))))
