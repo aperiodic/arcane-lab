@@ -18,3 +18,4 @@
   [card]
   (let [basic-land-names #{"Plains" "Island" "Swamp" "Mountain" "Forest"}]
     (contains? basic-land-names (:name card))))
+
