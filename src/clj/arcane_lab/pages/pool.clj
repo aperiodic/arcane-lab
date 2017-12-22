@@ -8,7 +8,7 @@
 
 (defn card
   [{:keys [x y name img-src]}]
-  [:div.card {:style (translation x y)}
+  [:div.card.placeholder {:style (translation x y)}
    [:img {:src img-src :title name}]])
 
 (defn pile
@@ -32,6 +32,12 @@
        help-widget
        gh-ribbon
        ui-bar
+
+       [:div#preloader
+        {:style "display: none"}
+        [:img {:src "/loading.svg"}]
+        [:img {:src "/card-back.png"}]
+        [:img {:src "/card-mask.png"}]]
 
        [:div#app
         [:div#dom-root

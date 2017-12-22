@@ -112,6 +112,10 @@ img#gh-ribbon {
   color: #eca611;
 }
 
+div.card.placeholder {
+  background-image: url(/card-back.png)
+}
+
 /*
  * App
  */
@@ -170,12 +174,13 @@ div#drop-target.overlay {
   border-radius: 2px;
 }
 
-.card {
+div.card {
   position: absolute;
   z-index: 3;
+  height: 351px;
 }
 
-.card > img {
+div.card > img {
   width: 244px;
   height: 351px;
   -webkit-mask-image: url(/card-mask.png);

@@ -35,8 +35,13 @@
 (defn card
   ([card] (card card 0 0))
   ([card dx dy]
-   (let [{:keys [name id img-src x y selected? dropped?]} card]
-     (dom/div #js {:className (if selected? "card selected" "card")
+   (let [{:keys [name id img-src x y selected? dropped? all-loaded?]} card
+         classes (cond
+                   (and (not selected?) all-loaded?) "card"
+                   (and selected? all-loaded?) "card selected"
+                   (and (not selected?) (not all-loaded?)) "card placeholder"
+                   :else "card placeholder selected")]
+     (dom/div #js {:className classes
                    :style #js {:transform (css-translation (+ x dx) (+ y dy))}
                    :key id}
               (dom/img #js {:src img-src, :title name})
@@ -44,9 +49,11 @@
                 (dom/div #js {:className "dropped-marker"}))))))
 
 (defn pile
-  [pile]
+  [pile loaded?]
   (dom/div #js {:className "pile"}
-           (map #(card % 0 0) (:cards pile))))
+           (->> (:cards pile)
+             (map #(assoc % :all-loaded? loaded?))
+             (map #(card % 0 0)))))
 
 (defn drag
   [state]
@@ -137,19 +144,21 @@
 
 (defn cards
   [state !loaded?]
-  (dom/div #js {:id "dom-root"}
-           (apply dom/div {:id "piles"}
-                  (map pile (state/state->piles state)))
-           (dfc state)
-           (drag state)
-           (selection state)
-           (footer state)
-           (if-not @!loaded?
-             (dom/div #js {:id "loader"}
-                      (dom/p #js {}
-                             (dom/img #js {:src "/loading.svg"
-                                           :width "200px", :height "200px"}))))
-           (dfc-preloader state)))
+  (let [loaded? @!loaded?
+        pile #(pile % loaded?)]
+    (dom/div #js {:id "dom-root"}
+             (apply dom/div {:id "piles"}
+                    (map pile (state/state->piles state)))
+             (dfc state)
+             (drag state)
+             (selection state)
+             (footer state)
+             (if-not loaded?
+               (dom/div #js {:id "loader"}
+                        (dom/p #js {}
+                               (dom/img #js {:src "/loading.svg"
+                                             :width "200px", :height "200px"}))))
+             (dfc-preloader state))))
 
 (defn- navigate!
   "Redirect to the given sealed format."
