@@ -1,13 +1,14 @@
 (ns arcane-lab.sets)
 
 (def sets-that-work
-  #{:XLN :HOU :AKH :AER :KLD :EMN :SOI :OGW :BFZ :ORI :DTK :FRF :KTK :M15 :JOU
-    :BNG :THS :M14 :DGM :GTC :RTR :M13 :AVR :DKA :ISD :M12 :NPH :MBS :SOM :M11
-    :ROE :WWK :ZEN :M10 :ARB :CON :ALA :EVE :SHM :MOR :LRW (keyword "10E") :CSP
-    :DIS :GPT :RAV (keyword "9ED") :SOK :BOK :CHK :UNH (keyword "5DN") :DST :MRD
-    (keyword "8ED") :SCG :LGN :ONS :JUD :TOR :ODY :APC (keyword "7ED") :PLS :INV
-    :PCY :NMS :MMQ :S99 :UDS (keyword "6ED") :ULG :USG :EXO :PO2 :STH :TMP :WTH
-    :POR (keyword "5ED") :VIS :MIR :ICE (keyword "4ED") (keyword "3ED") :LEB})
+  #{:LEB (keyword "3ED") (keyword "4ED") :ICE :MIR :VIS (keyword "5ED") :POR
+    :WTH :TMP :STH :PO2 :EXO :USG :ULG (keyword "6ED") :UDS :S99 :MMQ :NMS :PCY
+    :INV :PLS (keyword "7ED") :APC :ODY :TOR :JUD :ONS :LGN :SCG
+    (keyword "8ED") :MRD :DST (keyword "5DN") :UNH :CHK :BOK :SOK
+    (keyword "9ED") :RAV :GPT :DIS :CSP (keyword "10E") :LRW :MOR :SHM :EVE :ALA
+    :CON :ARB :M10 :ZEN :WWK :ROE :M11 :SOM :MBS :NPH :M12 :ISD :DKA :AVR :M13
+    :RTR :GTC :DGM :M14 :THS :BNG :JOU :M15 :KTK :FRF :DTK :ORI :BFZ :OGW :SOI
+    :EMN :KLD :AER :AKH :HOU :XLN})
 
 (def sets-that-dont-work
   #{:EMA :MM2 :CNS :MMA :FUT :PLC :TSP :TSB :PTK :UGL :ALL :HML :CHR :FEM :DRK
