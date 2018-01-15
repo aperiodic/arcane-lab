@@ -6,15 +6,16 @@
   [x y]
   (str "transform: translate(" (int x) "px," (int y) "px);"))
 
-(defn card
-  [{:keys [x y name img-src]}]
+(defn card-stub
+  "A card placeholder with the Magic card for the image."
+  [{:keys [x y name]}]
   [:div.card.placeholder {:style (translation x y)}
-   [:img {:src img-src :title name}]])
+   [:img {:src "/card-back.png" :title name}]])
 
 (defn pile
   [the-pile]
   [:div.pile
-   (map card (:cards the-pile))])
+   (map card-stub (:cards the-pile))])
 
 (declare head)
 (declare help-widget)
