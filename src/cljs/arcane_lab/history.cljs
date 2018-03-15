@@ -51,7 +51,7 @@
 
 (def !fate (atom {:past [], :future ()}))
 
-(defn add-to-history-if-new!
+(defn add-new-state!
   [state]
   (swap! !fate (fn [{:keys [past] :as fate}]
                  (if (= state (last past))
@@ -62,7 +62,7 @@
   (save-state! state)
   state)
 
-(defn do-rewind
+(defn zip-to-past
   [fate]
   (let [{:keys [past]} fate]
     (if (<= (count past) 1)
@@ -73,10 +73,10 @@
 
 (defn rewind!
   [current]
-  (let [fate' (swap! !fate do-rewind)]
+  (let [fate' (swap! !fate zip-to-past)]
     (-> fate' :past last)))
 
-(defn do-skip
+(defn zip-to-future
   [fate]
   (if-let [new-present (-> fate :future first)]
     (-> fate
@@ -84,8 +84,7 @@
       (update-in [:past] (fnil conj []) new-present))
     fate))
 
-(defn skip-ahead!
+(defn fast-forward!
   [current]
-  (let [fate' (swap! !fate do-skip)]
+  (let [fate' (swap! !fate zip-to-future)]
     (-> fate' :past last)))
-

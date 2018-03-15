@@ -115,7 +115,7 @@
                state/add-max-pile-x
                state/add-selection-triggers
                state/add-drop-zones
-               history/add-to-history-if-new!))
+               history/add-new-state!))
       :otherwise state)))
 
 (defn rewind-state
@@ -124,6 +124,6 @@
     (fn [current] (history/rewind! current))
     identity))
 
-(defn skip-ahead-state
+(defn fast-forward-state
   [_]
   (fn [current] (history/skip-ahead! current)))
