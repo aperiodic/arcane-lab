@@ -115,15 +115,22 @@
                state/add-max-pile-x
                state/add-selection-triggers
                state/add-drop-zones
-               history/add-new-state!))
+               history/add-new-state!
+               (doto history/save-state!)))
       :otherwise state)))
 
-(defn rewind-state
+(defn rewind-state!
   [should-rewind?]
   (if should-rewind?
-    (fn [current] (history/rewind! current))
+    (fn [current]
+      (let [previous (history/rewind! current)]
+        (history/save-state! previous)
+        previous))
     identity))
 
-(defn fast-forward-state
+(defn fast-forward-state!
   [_]
-  (fn [current] (history/skip-ahead! current)))
+  (fn [current]
+    (let [nxt (history/fast-forward! current)]
+      (history/save-state! nxt)
+      nxt)))

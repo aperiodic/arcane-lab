@@ -59,7 +59,6 @@
                    (-> fate
                      (update-in [:past] (fnil conj []) state)
                      (assoc :future ())))))
-  (save-state! state)
   state)
 
 (defn zip-to-past

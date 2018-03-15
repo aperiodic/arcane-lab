@@ -50,10 +50,10 @@
                   (sig/map action/update-selection-or-drag-destination drag-coords)
                   (sig/map action/stop-selection-or-drag stop-drag)
                   (sig/map action/stop-selection-or-drag click-up)
-                  (sig/map action/rewind-state (on-key-code-down c/u-key-code))
-                  (sig/map action/rewind-state undo-button-down)
-                  (sig/map action/fast-forward-state (on-key-code-down c/r-key-code))
-                  (sig/map action/fast-forward-state redo-button-down)
+                  (sig/map action/rewind-state! (on-key-code-down c/u-key-code))
+                  (sig/map action/rewind-state! undo-button-down)
+                  (sig/map action/fast-forward-state! (on-key-code-down c/r-key-code))
+                  (sig/map action/fast-forward-state! redo-button-down)
                   (sig/constant identity))]
     (sig/drop-repeats
       (sig/reductions (fn [state action] (action state))
