@@ -107,8 +107,8 @@
    [:span.button [:a#help-button {:href "#"} [:button "?"]]]
    [:span.button [:a#undo-button {:href "#"}
                   [:button [:span.underline "U"] "ndo"]] ]
-   [:span.button [:a#redo-button {:href "#"}]
-    [:button [:span.underline "R"] "edo"]]
+   [:span.button [:a#redo-button {:href "#"}
+                  [:button [:span.underline "R"] "edo"]]]
    [:span.button [:a#new-pool-button {:href "./"} [:button "New Pool"]] ]
    [:span#navigator
     "Change Format: "
