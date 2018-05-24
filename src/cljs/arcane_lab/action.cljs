@@ -19,17 +19,8 @@
     (let [[x y] pos
           piles-in-selection (filter #(some :selected? (:cards %))
                                      (state/state->piles state))
-          extant-selection-drag? (loop [ps piles-in-selection]
-                                   (if-let [{l :x, pt :y, cards :cards, :as p} (first ps)]
-                                     (let [r (+ l c/card-width)
-                                           t (-> (filter :selected? cards) first :y)
-                                           b (+ pt (piles/pile-height p))]
-                                       (if (within? l r t b x y)
-                                         true
-                                         (recur (next ps))))
-                                     ;; else (no more piles)
-                                     false))
           card-under-mouse (piles/card-under piles x y)
+          extant-selection-drag? (:selected? card-under-mouse)
           [dx dy] (drag/drag-pile-pos x y)]
 
       (cond
