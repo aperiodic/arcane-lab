@@ -79,8 +79,7 @@
         state' (update state :drag piles/move-drag-pile-to dx' dy')]
     (if-not update?
       state'
-      (assoc state' :drag-target (drag/drag-target (:drag state')
-                                                   (:piles state'))))))
+      (assoc state' :drag-target (drag/drag-target dx' dy' (:piles state'))))))
 
 ;;
 ;; Cached State Properties
