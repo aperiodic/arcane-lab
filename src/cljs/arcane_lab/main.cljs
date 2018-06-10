@@ -60,11 +60,11 @@
     state
     {:target (.getElementById js/document "app")}))
 
-(defn start-navigator
+(defn start-navigator!
   "Given the target id for the navigator element, a sequence with every set's
   metadata and optionally the current format, create the site navigator."
   ([target-id all-sets]
-   (start-navigator target-id all-sets ::no-format))
+   (start-navigator! target-id all-sets ::no-format))
   ([target-id all-sets current-format]
    (om/root
      (fn [app owner]
@@ -142,8 +142,8 @@
     (async-http/GET "/api/sets?booster-only=1"
                     {:response-format (edn-response-format)
                      :handler (if current-format
-                                #(start-navigator "navigator" % current-format)
-                                #(start-navigator "navigator" %))
+                                #(start-navigator! "navigator" % current-format)
+                                #(start-navigator! "navigator" %))
                      :error-handler log-error})))
 
 (defn get-state-and-start-app!
