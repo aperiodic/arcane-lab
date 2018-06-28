@@ -105,8 +105,27 @@
       (dissoc :selection))))
 
 ;;
+;; History Manipulation
+;;
+
+(defn undo
+  [app-state _ _]
+  (action/rewind! app-state))
+
+(defn redo
+  [app-state _ _]
+  (action/fast-forward! app-state))
+
+;;
 ;; UI State Machine for Cypress
 ;;
+
+(defn- key-switch
+  [state _ key-down]
+  (case (.-key key-down)
+    \u (action/rewind! state)
+    \r (action/fast-forward! state)
+    state))
 
 (defn start-drag-or-selection
   [state ui-state mouse-down]
@@ -114,12 +133,15 @@
     (:drag-started :scan-started) (start-drag state ui-state mouse-down)
     :selecting (start-selection state ui-state mouse-down)))
 
-(def ui-states
+(def drag-select-scan-cards
   (-> (sm/blank-state-machine :idle)
     ;; :idle transitions        will return either :drag-started, :scan-started,
     ;;                        ↓ or :selecting
     (sm/add-transition :idle, to-drag-or-selection, :mouse-down
                        start-drag-or-selection)
+    (sm/add-transition :idle :idle :key-down key-switch)
+    (sm/add-transition :idle :idle :arcane-lab/undo undo)
+    (sm/add-transition :idle :idle :arcane-lab/redo redo)
 
     ;; :scan-started state
     (sm/add-transition :scan-started :idle :mouse-up drop-on-top)

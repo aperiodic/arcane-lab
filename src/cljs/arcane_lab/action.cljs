@@ -45,13 +45,13 @@
                       (state/remove-pile state px py)
                       (state/add-pile state (piles/make-pile pile-cards' px py)))
                  (state/map-cards #(assoc % :dropped? false)))]
-    (assoc state' :drag drag :drag-target (drag/drag-target dx dy (:piles state')))))
+    (assoc state' :drag drag)))
 
 (defn update-drag
   [state x y]
   (let [max-pile-x (or (:max-pile-x state)
                        (piles/max-pile-x (:piles state)))
-        ;; should be able to drag pile all the way over to new column
+        ;; should be able to drag pile all the way over to a new blank column
         max-drag-x (+ max-pile-x (* 2 c/card-width) c/half-card-width c/gutter)]
     (state/update-drag state (min max-drag-x x) y)))
 
@@ -68,9 +68,6 @@
                   history/add-new-state!)]
     (history/save-state! state')
     state'))
-
-;; TODO: main thing left to do is fill in the drop-* functions with the right
-;; parts from the old stop-selection-or-drag
 
 (defn- drop-cards
   "Insert the drag's cards into or create a new pile at target-x target-y, with
@@ -105,8 +102,10 @@
       (dissoc :drag :drag-target)
       rehash-state)))
 
+;; this is the drop that enables the scanning behavior. it places the card on
+;; the 'logical' top of the pile (where you can see its entire face), which is
+;; the 'screen' bottom.
 (defn drop-on-top
-  ;; this is the drop that enables the scanning behavior
   [state target-x target-y]
   (let [{tx :x, ty :y, :as target-pile} (piles/pile-under (:piles state)
                                                           target-x target-y)]
@@ -114,7 +113,7 @@
 
 (defn return-cards
   [state]
-  (let [[dx_0 dy_0] (get-in state [:drag :dragged-from])
+  (let [{dx_0 :x, dy_0 :y} (get-in state [:drag :dragged-from])
         [tx ty ti] (drag/drag-target dx_0 dy_0 (:piles state))]
     (drop-cards state (:drag state) tx ty ti)))
 
@@ -137,6 +136,17 @@
         max-selection-x (+ max-pile-x c/card-width c/gutter)]
     (state/update-selection state (min max-selection-x x) y)))
 
+(defn rewind!
+  [current]
+  (let [previous (history/rewind! current)]
+    (history/save-state! previous)
+    previous))
+
+(defn fast-forward!
+  [current]
+  (let [nxt (history/fast-forward! current)]
+    (history/save-state! nxt)
+    nxt))
 
 ;;
 ;; Old Actions, Used in Zelkova Signal Graph
@@ -177,6 +187,7 @@
         (:drag state) (update-drag state x y)
         (:selection state) (update-selection state x y)
         :else state))))
+
 
 (defn stop-selection-or-drag
   [_]

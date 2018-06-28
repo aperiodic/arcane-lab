@@ -1,6 +1,7 @@
 (ns arcane-lab.main
   (:require [ajax.core :as async-http]
             [ajax.edn :refer [edn-response-format]]
+            [arcane-lab.action :as action]
             [arcane-lab.card :as card]
             [arcane-lab.color :as color]
             [arcane-lab.constants :as c]
@@ -9,9 +10,12 @@
             [arcane-lab.render :as render]
             [arcane-lab.signal :as signal]
             [arcane-lab.state :as state]
+            [arcane-lab.state-machine :refer [drag-select-scan-cards]]
             [arcane-lab.ui :as ui]
             [arcane-lab.useful :refer [rand-uuid]]
+            [cljs.core.async :as async]
             [clojure.string :as str]
+            [cypress.core :as cypress]
             [goog.events :as events]
             [jamesmacaulay.zelkova.signal :as sig]
             [js.imagesloaded]
@@ -32,7 +36,10 @@
     (set! (.-innerText button) "Random Pool")))
 
 ;;
-;; App Setup
+;; Loader Cleanup
+;;
+;; We want to keep the loader until all the images have loaded, which is well
+;; after the app starts working on a cold load (i.e. for a new visitor).
 ;;
 
 ;; I can't figure out how to put other things in the root om atom since Zelkova
@@ -47,7 +54,7 @@
   (println "images all loaded!"))
 
 ;;
-;; App Setup
+;; DOM Hooks
 ;;
 
 (defn app-root-node
@@ -58,8 +65,38 @@
   []
   (.getElementById js/document "navigator"))
 
-(defn start-om
-  [state]
+(defn- click-chan
+  [element sigil]
+  (let [out (async/chan 4)]
+    (.addEventListener element "mousedown"
+      (fn [e]
+        (.preventDefault e)
+        (.stopPropagation e)
+        (async/put! out sigil))
+      #js {:passive false})
+    out))
+
+(defn undo-button-down-chan
+  []
+  (click-chan (.getElementById js/document "undo-button") :arcane-lab/undo))
+
+(defn redo-button-down-chan
+  []
+  (click-chan (.getElementById js/document "redo-button") :arcane-lab/redo))
+
+(defn custom-cypress-events
+  []
+  {:arcane-lab/undo (undo-button-down-chan)
+   :arcane-lab/redo (redo-button-down-chan)})
+
+;;
+;; App Setup
+;;
+
+(defn start!
+  [!state]
+  (cypress/init!
+    js/document (custom-cypress-events) drag-select-scan-cards !state)
   (om/root
     (fn [app owner]
       (reify
@@ -69,8 +106,8 @@
         om/IDidMount
         (did-mount [_]
           (js/imagesLoaded "div#app" #(remove-loader app)))))
-    state
-    {:target (.getElementById js/document "app")}))
+    !state
+    {:target (app-root-node)}))
 
 (defn start-navigator!
   "Given the target id for the navigator element, a sequence with every set's
@@ -100,10 +137,9 @@
 
 (defn start-app-from-state!
   [init-state]
-  (let [state (migrate-state init-state)
-        state-atom (sig/pipe-to-atom (signal/drag-drop-select-undo-redo state))]
+  (let [state (migrate-state init-state)]
     (swap! history/!fate update-in [:past] (fnil conj ()) state)
-    (start-om state-atom)))
+    (start! (atom state))))
 
 (def blank-state {:piles (sorted-map)})
 
