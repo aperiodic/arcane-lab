@@ -135,19 +135,16 @@
 
 (defn footer
   [state]
-  (let [{:keys [drag piles]} state
-        max-y (+ (apply max (keys piles))
-                 (piles/row-height (get piles (last (keys piles)))))] ;; TODO replace w/last-row fn
-    (dom/div #js {:id "footer"
-                  :style #js {:transform (css-translation 0 max-y)}}
-             (dom/div #js {:className "disclaimer"}
-                      (dom/strong nil "Magic: the Gathering")
-                      " is © Wizards of the Coast"
-                      " • Lab Maniac is in no way affiliated with Wizards of the Coast")
-             (dom/div #js {:className "disclaimer"}
-                      "Data from " (dom/a #js {:href "http://mtgjson.com"} "mtgjson.com")
-                      ", images from " (dom/a #js {:href "http://magiccards.info"} "magiccards.info & Gatherer")
-                      " • Made by Dan Lidral-Porter"))))
+  (dom/div #js {:id "footer"
+                :style #js {:transform (css-translation 0 (piles/max-y (:piles state)))}}
+           (dom/div #js {:className "disclaimer"}
+                    (dom/strong nil "Magic: the Gathering")
+                    " is © Wizards of the Coast"
+                    " • Lab Maniac is in no way affiliated with Wizards of the Coast")
+           (dom/div #js {:className "disclaimer"}
+                    "Data from " (dom/a #js {:href "http://mtgjson.com"} "mtgjson.com")
+                    ", images from " (dom/a #js {:href "http://magiccards.info"} "magiccards.info & Gatherer")
+                    " • Made by Dan Lidral-Porter")))
 
 (defn cards
   [state !loaded?]
@@ -160,12 +157,12 @@
              (drag state)
              (selection state)
              (footer state)
+             (dfc-preloader state)
              (if-not loaded?
                (dom/div #js {:id "loader"}
                         (dom/p #js {}
                                (dom/img #js {:src "/loading.svg"
-                                             :width "200px", :height "200px"}))))
-             (dfc-preloader state))))
+                                             :width "200px", :height "200px"})))))))
 
 (defn- navigate!
   "Redirect to the given sealed format."

@@ -53,6 +53,7 @@
    (-> (make-pile (map #(assoc % :dropped? false) cards) x y)
      (assoc :moved? false
             :cards-orig-pos card-picked-pos
+            :dragged-from card-picked-pos
             :first-card-picked? first-card-picked?
             :dfcs? (boolean (some :dfc? cards))))))
 
@@ -113,6 +114,14 @@
           (recur (next rows) row-max)
           (recur (next rows) x-max)))
       x-max)))
+
+(defn max-y
+  "Given the piles map from the state, return the highest y-coordinate covered
+  by part of a card (visually, this means the bottom of the lowest card on the
+  page).  "
+  [piles]
+  (+ (apply max (keys piles))
+     (row-height (get piles (last (keys piles))))))
 
 (defn row-for
   "Returns the last row whose y position is less than or equal to y's, or nil if
