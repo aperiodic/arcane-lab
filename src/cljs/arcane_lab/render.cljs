@@ -55,29 +55,36 @@
              (map #(assoc % :all-loaded? loaded?))
              (map #(card % 0 0)))))
 
-(defn drag
+(defn drag-target
   [state]
-  (if-let [drag (:drag state)]
-    (let [[tx ty insertion-index] (:drag-target state)
-          target-pile (state/get-pile state tx ty)
+  (if-let [[tx ty insertion-index] (:drag-target state)]
+    (let [target-pile (state/get-pile state tx ty)
           target-height (if target-pile
                           (piles/pile-height target-pile)
                           c/card-height)]
-      (dom/div nil
-               (dom/div #js {:id "drag-target"
-                             :className "ghost"
-                             :style #js {:transform (css-translation tx ty)
-                                         :height target-height}})
-               (if (number? insertion-index)
-                 (let [margin 6
-                       bar-x (+ tx margin)
-                       bar-y (+ ty (* insertion-index c/pile-stride) 4)]
-                   (dom/div #js {:id "drop-target"
-                                 :className "overlay"
-                                 :style #js {:transform (css-translation
-                                                          bar-x bar-y)}})))
-               (apply dom/div #js {:id "drag" :className "pile"}
-                      (map #(card % 0 0) (:cards drag)))))))
+      (dom/div
+        nil
+        (dom/div #js {:id "drag-target"
+                      :className "ghost"
+                      :style #js {:transform (css-translation tx ty)
+                                  :height target-height}})
+        (if (number? insertion-index)
+          (let [margin 6
+                bar-x (+ tx margin)
+                bar-y (+ ty (* insertion-index c/pile-stride) 4)]
+            (dom/div #js {:id "drop-target"
+                          :className "overlay"
+                          :style #js {:transform (css-translation
+                                                   bar-x bar-y)}})))))))
+
+(defn drag
+  [state]
+  (if-let [drag (:drag state)]
+    (dom/div nil
+             (if (:drag-target state)
+               (drag-target state))
+             (apply dom/div #js {:id "drag" :className "pile"}
+                    (map #(card % 0 0) (:cards drag))))))
 
 (defn dfc
   [state]
