@@ -46,6 +46,18 @@
   (om/transact! state :images-loaded? (constantly true))
   (println "images all loaded!"))
 
+;;
+;; App Setup
+;;
+
+(defn app-root-node
+  []
+  (.getElementById js/document "app"))
+
+(defn navigator-node
+  []
+  (.getElementById js/document "navigator"))
+
 (defn start-om
   [state]
   (om/root
@@ -63,9 +75,9 @@
 (defn start-navigator!
   "Given the target id for the navigator element, a sequence with every set's
   metadata and optionally the current format, create the site navigator."
-  ([target-id all-sets]
-   (start-navigator! target-id all-sets ::no-format))
-  ([target-id all-sets current-format]
+  ([all-sets]
+   (start-navigator! all-sets ::no-format))
+  ([all-sets current-format]
    (om/root
      (fn [app owner]
        (reify om/IRender
@@ -74,7 +86,7 @@
              all-sets
              (if (not= current-format ::no-format) current-format)))))
      all-sets
-     {:target (.getElementById js/document (name target-id))})))
+     {:target (navigator-node)})))
 
 (defn migrate-state
   [possibly-old-state]
@@ -142,8 +154,8 @@
     (async-http/GET "/api/sets?booster-only=1"
                     {:response-format (edn-response-format)
                      :handler (if current-format
-                                #(start-navigator! "navigator" % current-format)
-                                #(start-navigator! "navigator" %))
+                                #(start-navigator! % current-format)
+                                #(start-navigator! %))
                      :error-handler log-error})))
 
 (defn get-state-and-start-app!
