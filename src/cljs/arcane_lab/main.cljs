@@ -8,7 +8,6 @@
             [arcane-lab.history :as history]
             [arcane-lab.piles :as piles]
             [arcane-lab.render :as render]
-            [arcane-lab.signal :as signal]
             [arcane-lab.state :as state]
             [arcane-lab.state-machine :refer [drag-select-scan-cards]]
             [arcane-lab.ui :as ui]
@@ -17,7 +16,6 @@
             [clojure.string :as str]
             [cypress.core :as cypress]
             [goog.events :as events]
-            [jamesmacaulay.zelkova.signal :as sig]
             [js.imagesloaded]
             [om.core :as om :include-macros true]))
 

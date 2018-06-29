@@ -6,10 +6,6 @@
             [arcane-lab.piles :as piles]
             [arcane-lab.state :as state]))
 
-;;
-;; New Actions, Used in Cypress UI State Machine
-;;
-
 (defn start-selection-drag
   [state x y]
   (let [piles-in-selection (filter #(some :selected? (:cards %))
@@ -147,97 +143,3 @@
   (let [nxt (history/fast-forward! current)]
     (history/save-state! nxt)
     nxt))
-
-;;
-;; Old Actions, Used in Zelkova Signal Graph
-;;
-
-(defn start-drag
-  "Start a drag if:
-    * there are selected cards and the click is on a pile with selected cards
-      (but not above the selected cards in that pile);
-    * there the click is on some unselected card (start dragging
-      just that card, regardless of whether or not there's a selection).
-  Returns the state with or without a newly-started drag, depending on if the
-  above criteria are satisfied. "
-  [pos]
-  (fn [{:keys [piles] :as state}]
-    (let [[x y] pos
-          card-under-mouse (piles/card-under piles x y)]
-      (cond
-        (:selected? card-under-mouse) (start-selection-drag state x y)
-        card-under-mouse (start-single-card-drag state x y)
-        :otherwise (dissoc state :drag)))))
-
-(defn start-selection-if-not-dragging
-  [pos]
-  (fn [state]
-    (if (:drag state)
-      state
-      (let [selection {:start pos, :stop pos, :count 0}]
-        (-> state
-          (state/apply-selection selection)
-          (assoc :selection selection))))))
-
-(defn update-selection-or-drag-destination
-  [pos]
-  (fn [state]
-    (let [[x y] pos]
-      (cond
-        (:drag state) (update-drag state x y)
-        (:selection state) (update-selection state x y)
-        :else state))))
-
-
-(defn stop-selection-or-drag
-  [_]
-  (fn [{:keys [selection drag piles] :as state}]
-    (cond
-      selection (-> state
-                  (state/apply-selection selection)
-                  (dissoc :selection))
-      drag (let [{dx :x, dy :y, d-cs :cards} drag
-                 ;; drag target shouldn't know about whether the drag has moved,
-                 ;; right? I think I want to handle that at the action level
-                 [tx ty ti] (drag/drag-target dx dy piles)
-                 {old-cards :cards} (state/get-pile state tx ty)
-                 highlight? (and (not (:selected? (first d-cs)))
-                                 (not= ti :below-pile)
-                                 (or (= ti :no-pile)
-                                     (< ti (count old-cards)))
-                                 (pos? (count old-cards)))
-                 drag-cards (map #(assoc % :dropped? highlight?) d-cs)
-                 new-cards (cond
-                            (= ti :no-pile) drag-cards
-                            (or (= ti :below-pile) (= ti :above-pile)) (concat old-cards drag-cards)
-                            :else (concat (take ti old-cards) drag-cards (drop ti old-cards)))]
-             (-> state
-               (state/add-pile (piles/make-pile new-cards tx ty))
-               (update-in [:piles] piles/rejigger-rows)
-               (dissoc :drag :drag-target)
-               state/add-max-pile-x
-               state/add-selection-triggers
-               state/add-drop-zones
-               history/add-new-state!
-               (doto history/save-state!)))
-      :otherwise state)))
-
-;;
-;; State History Manipulation
-;;
-
-(defn rewind-state!
-  [should-rewind?]
-  (if should-rewind?
-    (fn [current]
-      (let [previous (history/rewind! current)]
-        (history/save-state! previous)
-        previous))
-    identity))
-
-(defn fast-forward-state!
-  [_]
-  (fn [current]
-    (let [nxt (history/fast-forward! current)]
-      (history/save-state! nxt)
-      nxt)))

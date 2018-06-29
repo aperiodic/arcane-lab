@@ -13,7 +13,6 @@
                  [compojure "1.4.0"]
                  [cypress "0.2.0"]
                  [hiccup "1.0.5"]
-                 [jamesmacaulay/zelkova "0.4.0"]
                  [com.lucasbradstreet/cljs-uuid-utils "1.0.2"]
                  [puppetlabs/http-client "0.6.0"]
                  [org.omcljs/om "0.9.0"]
