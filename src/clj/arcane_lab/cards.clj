@@ -83,6 +83,17 @@
                         "Windswept Heath"
                         "Wooded Foothills"})
 
+(def amonkhet-tap-land-names #{"Cinder Barrens"
+                               "Forsaken Sanctuary"
+                               "Foul Orchard"
+                               "Highland Lake"
+                               "Meandering River"
+                               "Stone Quarry"
+                               "Submerged Boneyard"
+                               "Timber Gorge"
+                               "Tranquil Expanse"
+                               "Woodland Stream"})
+
 ;;
 ;; Card & Set Processing
 ;;
@@ -103,10 +114,11 @@
    :9ED #(string? (:number %)) ;; sets have collector numbers like "S1", which are left as strings
                                ;; by the parse-collector-number function below.
    :EMN :melded
-   :XLN #(> (:number %) 279)
-   :AKH #(> (:number %) 269)
-   :KLD #(> (:number %) 264)
-   :ORI #(> (:number %) 272)}) ;; Cards in gatherer but not printed in boosters have number > 272
+   :XLN #(> (:number %) 279)   ;; Often sets have extra cards printed for the introductory
+   :AKH #(> (:number %) 269)   ;; Planeswalker decks that are technically in the set but don't show
+   :KLD #(> (:number %) 264)   ;; up in booster packs
+   :ORI #(> (:number %) 272)
+   :M19 #(> (:number %) 280)})
 
 (defn parse-collector-number
   "Parse a collector number to an integer or float. Most parsed collector
@@ -461,7 +473,10 @@
 
 (defn commons-sheet
   [set-code]
-  (get-in booster-sets [set-code :cards :common]))
+  (case set-code
+    :M19 (remove #(contains? amonkhet-tap-land-names (:name %))
+                 (get-in booster-sets [set-code :cards :common]))
+    (get-in booster-sets [set-code :cards :common])))
 
 (defn dfcs-sheet
   [set-code]
@@ -478,15 +493,23 @@
 (defn lands-sheet
   [set-code]
   (let [default-basics (get-in booster-sets [:ODY :cards :basic-land])]
-    (condp = set-code
+    (case set-code
       :FRF (let [ktk-fetches (filter #(contains? ally-fetch-names (:name %))
                                      (get-in booster-sets [:KTK :cards :rare]))
                  frf-refuges (filter #(contains? refuge-names (:name %))
                                      (get-in all-sets [:FRF :cards]))]
+             ;; oops, this one should have been shuffled
              (concat (take 105 (cycle frf-refuges))
                      (take 5 (cycle ktk-fetches))))
 
       :OGW default-basics ; wastes are basic but not on the land sheet
+
+      :M19 (let [tap-lands (filter #(contains? amonkhet-tap-land-names (:name %))
+                                   (get-in booster-sets [:M19 :cards :common]))
+                 basics (get-in booster-sets [:M19 :cards :basic-land])]
+             ;; normally land sheet is not shuffled but this one should be
+             (shuffle (concat (take 60 (cycle basics))
+                              (take 40 (cycle tap-lands)))))
 
       ;; normally just use basics printed in the set
       (or (get-in booster-sets [set-code :cards :basic-land])
