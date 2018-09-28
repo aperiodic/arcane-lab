@@ -94,6 +94,17 @@
                                "Tranquil Expanse"
                                "Woodland Stream"})
 
+(def guildgate-names #{"Azorius Guildgate"
+                       "Boros Guildgate"
+                       "Dimir Guildgate"
+                       "Golgari Guildgate"
+                       "Gruul Guildgate"
+                       "Izzet Guildgate"
+                       "Orzhov Guildgate"
+                       "Rakdos Guildgate"
+                       "Selesnya Guildgate"
+                       "Simic Guildgate"})
+
 ;;
 ;; Card & Set Processing
 ;;
@@ -118,7 +129,11 @@
    :AKH #(> (:number %) 269)   ;; Planeswalker decks that are technically in the set but don't show
    :KLD #(> (:number %) 264)   ;; up in booster packs
    :ORI #(> (:number %) 272)
-   :M19 #(> (:number %) 280)})
+   :M19 #(> (:number %) 280)
+   :GRN (fn [c]
+          (or (> (:number c) 259)
+              ;; this gets rid of the second printing of each Guildgate
+              (.endsWith (:name c) " (b)")))})
 
 (defn parse-collector-number
   "Parse a collector number to an integer or float. Most parsed collector
@@ -230,7 +245,11 @@
                                       [:double-faced [:land :checklist]])))
    :SOI #(assoc % :booster shadows-block-booster)
    :EMN #(assoc % :booster shadows-block-booster)
-   :KLD #(assoc % :booster normal-booster)}) ; mtgjson data has a draft matters slot for KLD (?!)
+   :KLD #(assoc % :booster normal-booster) ; mtgjson data has a draft matters slot for KLD (?!)
+   :GRN (let [grn-guildgate-renamer (fn [c] (if (re-find #"Guildgate" (:name c))
+                                              (update c :name str/replace #" \((a|b)\)" "")
+                                              c))]
+          #(update-in % [:cards :common] (partial map grn-guildgate-renamer)))})
 
 (defn link-composite
   "Find the other part of a composite card in the set and return an updated
@@ -510,6 +529,11 @@
              ;; normally land sheet is not shuffled but this one should be
              (shuffle (concat (take 60 (cycle basics))
                               (take 40 (cycle tap-lands)))))
+
+      :GRN (let [guildgates (filter #(contains? guildgate-names (:name %))
+                                    (get-in booster-sets [:GRN :cards :common]))]
+             ;; reduces variance in copies of any one gate in a sealed pool
+             (shuffle (take 15 guildgates)))
 
       ;; normally just use basics printed in the set
       (or (get-in booster-sets [set-code :cards :basic-land])

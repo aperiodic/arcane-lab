@@ -8,7 +8,7 @@
     (keyword "9ED") :RAV :GPT :DIS :CSP (keyword "10E") :LRW :MOR :SHM :EVE :ALA
     :CON :ARB :M10 :ZEN :WWK :ROE :M11 :SOM :MBS :NPH :M12 :ISD :DKA :AVR :M13
     :RTR :GTC :DGM :M14 :THS :BNG :JOU :M15 :KTK :FRF :DTK :ORI :BFZ :OGW :SOI
-    :EMN :KLD :AER :AKH :HOU :XLN :RIX :DOM :M19})
+    :EMN :KLD :AER :AKH :HOU :XLN :RIX :DOM :M19 :GRN})
 
 (def sets-that-dont-work
   #{:EMA :MM2 :CNS :MMA :FUT :PLC :TSP :TSB :PTK :UGL :ALL :HML :CHR :FEM :DRK
