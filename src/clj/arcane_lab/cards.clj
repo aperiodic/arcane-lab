@@ -200,7 +200,7 @@
     (and (number? (:number card))
          (integral? (:number card)))))
 
-(def shadows-block-boosters
+(def shadows-block-booster
   (concat [(vec rare-slot)]
           (repeat 3 :uncommon)
           (repeat 8 :common)
@@ -228,8 +228,8 @@
                                       (repeat 3 :uncommon)
                                       (repeat 9 :common)
                                       [:double-faced [:land :checklist]])))
-   :SOI #(assoc % :booster shadows-block-boosters)
-   :EMN #(assoc % :booster shadows-block-boosters)
+   :SOI #(assoc % :booster shadows-block-booster)
+   :EMN #(assoc % :booster shadows-block-booster)
    :KLD #(assoc % :booster normal-booster)}) ; mtgjson data has a draft matters slot for KLD (?!)
 
 (defn link-composite
