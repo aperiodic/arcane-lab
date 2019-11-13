@@ -22,7 +22,7 @@
                  [useful "0.8.8"]]
   :profiles {:dev {:plugins [[lein-cljsbuild "1.1.6"]
                              [lein-ring "0.9.7"]]}}
-  :jvm-opts ^:replace ["-Xmx1024m"]
+  :jvm-opts ^:replace ["-Xmx2g"]
 
   :ring {:handler arcane-lab.site/handler}
   :source-paths ["src/cljs" "src/clj" "src/cljc"]

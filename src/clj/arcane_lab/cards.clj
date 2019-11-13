@@ -135,6 +135,16 @@
               ;; this gets rid of the second printing of each Guildgate
               (.endsWith (:name c) " (b)")))})
 
+(defn trim-raw-card
+  "Given a raw card map (i.e. loaded directly from cards-by-set.json), return
+  a 'trimmed' version without fields we don't care about (like 'foreignData')"
+  [raw-card]
+  (dissoc raw-card
+          :foreignData
+          :tcgplayerProductId
+          :tcgplayerPurchaseUrl
+          :rulings))
+
 (defn parse-collector-number
   "Parse a collector number to an integer or float. Most parsed collector
   numbers are integers, but the numbers of double-faced & split cards (which are
@@ -173,13 +183,17 @@
         (assoc :color-identity ids)
         (assoc-in [:other-part :color-identity] ids)))))
 
-(def field-translations
+(def set-field-translations
+  {:boosterV3 :booster,
+   :releaseDate :release-date})
+
+(def card-field-translations
   {:colorIdentity :color-identity
    :manaCost :mana-cost
    :mciNumber :mci-number
    :imageName :image-name})
 
-(def camels->snakes field-translations)
+(def camels->snakes card-field-translations)
 (def snakes->camels (into {} (for [[c s] camels->snakes]
                                [s c])))
 
@@ -311,10 +325,13 @@
         special-processor (special-booster-set-processor code identity)
         extraneous-card? (fn/any?
                            second-part?
-                           (extraneous-card-predicate code (constantly false)))]
+                           (extraneous-card-predicate code (constantly false)))
+        rarity-or-basic-land (fn [c] (if (basic-land? c)
+                                       :basic-land
+                                       (:rarity c)))]
     (-> set
       (update :cards (partial remove extraneous-card?))
-      (update :cards (partial group-by :rarity))
+      (update :cards (partial group-by rarity-or-basic-land))
       move-dfcs
       (update :booster (partial postwalk keywordize-string))
       (update :booster (partial remove #{:marketing}))
@@ -324,26 +341,32 @@
 ;; Load & Process Sets
 ;;
 
+(defn raw-cards-by-set
+  []
+  (-> (io/resource "cards-by-set.json")
+    slurp
+    (json/decode true)))
+
 (def all-sets
-  (let [raw-sets (-> (io/resource "cards-by-set.json")
-                   slurp
-                   (json/decode true)
+  (let [raw-sets (-> (raw-cards-by-set)
                    ;; EMN comes from its own data file because the MtGJSON
                    ;; version has bad data from Gatherer that they refuse to fix
                    (assoc :EMN (data/eldritch-moon)))
-        process-card (comp keywordize-and-categorize summon-snakes)]
-    (into {} (for [[code set] raw-sets
-                   :when (and (not= (:type set) "promo")
+        process-card (comp keywordize-and-categorize summon-snakes trim-raw-card)]
+    (into {} (for [[code mtg-set] raw-sets
+                   :when (and (not= (:type mtg-set) "promo")
                               (not (contains? ignored-sets code)))]
                [code
-                (cond-> set
-                  :always (update :cards (partial map process-card))
-                  :always (set/rename-keys {:releaseDate :release-date})
-                  :always link-composites
-                  (:booster set) (assoc :sealed-format
-                                        (get sets/sealed-formats
-                                             code
-                                             (str "6" (name code)))))]))))
+                (-> mtg-set
+                  (update :cards (partial map process-card))
+                  (set/rename-keys set-field-translations)
+                  link-composites
+                  (cond->
+                    (:booster mtg-set)
+                    (assoc :sealed-format (get sets/sealed-formats
+                                            code
+                                            (str "6" (name code))))))]))))
+
 
 (def booster-sets
   (into {} (for [[code set] all-sets
