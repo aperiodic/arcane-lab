@@ -708,16 +708,18 @@
          total-packs (reduce + (vals pack-count))
          rng (seeded-rng seed)]
      (:boosters
-       (reduce (fn [{:keys [last-print-run switched-runs? boosters]} [set-code booster-seed]]
-                (let [print-run' (-> (if (= (:set-code last-print-run) set-code)
-                                       last-print-run
+       (reduce (fn [{:keys [current-print-run switched-runs? boosters]} [set-code booster-seed]]
+                (let [print-run' (-> (if (= (:set-code current-print-run) set-code)
+                                       current-print-run
                                        (print-run set-code (.nextLong rng)))
                                    (print-booster booster-seed))
                       switch? (and (< (.nextDouble rng) print-run-switch-threshold)
                                    (not switched-runs?))]
 
-                  {:current-print-run (if switch? (print-run set-code (.nextLong rng)) print-run')
-                   :switched-runs? (if (= set-code (:set-code last-print-run))
+                  {:current-print-run (if switch?
+                                        (print-run set-code (.nextLong rng))
+                                        print-run')
+                   :switched-runs? (if (= set-code (:set-code current-print-run))
                                      (or switched-runs? switch?)
                                      false)
                    :boosters (concat boosters [(last (:boosters print-run'))])}))
