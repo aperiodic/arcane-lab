@@ -51,7 +51,7 @@
 
 (defn full-card->client-card
   [card]
-  (select-keys card [:name :names :multiverseid :rarity :colors :color-identity
+  (select-keys card [:name :names :multiverse-id :rarity :colors :color-identity
                      :mana-cost :cmc :dfc? :reverse]))
 
 (defn client-booster

@@ -188,10 +188,18 @@
    :releaseDate :release-date})
 
 (def card-field-translations
-  {:colorIdentity :color-identity
+  {:borderColor :border-color
+   :colorIdentity :color-identity
+   :convertedManaCost :converted-mana-cost
+   :flavorText :flavor-text
+   :frameVersion :frame-version
+   :hasFoil :has-foil
+   :hasNonFoil :has-non-foil
    :manaCost :mana-cost
-   :mciNumber :mci-number
-   :imageName :image-name})
+   :multiverseId :multiverse-id
+   :originalText :original-text
+   :originalType :original-type
+   :scryfallId :scryfall-id})
 
 (def camels->snakes card-field-translations)
 (def snakes->camels (into {} (for [[c s] camels->snakes]
@@ -418,15 +426,15 @@
   [nombre]
   (case nombre
     "Plains" (->> (printings-in-set "Plains" (:ZEN booster-sets))
-               (filter #(= (:multiverseid %) 195179)))
+               (filter #(= (:multiverse-id %) 195179)))
     "Island" (->> (printings-in-set "Island" (:ZEN booster-sets))
-               (filter #(= (:multiverseid %) 195170)))
+               (filter #(= (:multiverse-id %) 195170)))
     "Swamp" (->> (printings-in-set "Swamp" (:ZEN booster-sets))
-              (filter #(= (:multiverseid %) 201977)))
+              (filter #(= (:multiverse-id %) 201977)))
     "Mountain" (->> (printings-in-set "Mountain" (:ZEN booster-sets))
-                 (filter #(= (:multiverseid %) 201970)))
+                 (filter #(= (:multiverse-id %) 201970)))
     "Forest" (->> (printings-in-set "Forest" (:ZEN booster-sets))
-               (filter #(= (:multiverseid %) 195183)))
+               (filter #(= (:multiverse-id %) 195183)))
     (->> (map (partial printing-in-set nombre) (vals all-sets))
       (keep identity))))
 
@@ -453,11 +461,11 @@
 
 (defn newest-printing
   [printings]
-  (find-max-by :multiverseid printings))
+  (find-max-by :multiverse-id printings))
 
 (defn oldest-printing
   [printings]
-  (find-min-by :multiverseid printings))
+  (find-min-by :multiverse-id printings))
 
 ;;
 ;; Print Runs

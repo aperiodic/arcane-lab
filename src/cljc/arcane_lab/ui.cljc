@@ -13,12 +13,12 @@
 ;;
 
 (defn card-img-src
-  [multiverseid]
-  (str "/img/" multiverseid))
+  [multiverse-id]
+  (str "/img/" multiverse-id))
 
 (defn add-img-src
   [card]
-  (assoc card :img-src (card-img-src (:multiverseid card))))
+  (assoc card :img-src (card-img-src (:multiverse-id card))))
 
 (defn api-card->ui-card
   [api-card]
