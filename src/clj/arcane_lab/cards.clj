@@ -35,6 +35,14 @@
   [card]
   (contains? basic-names (:name card)))
 
+(defn nonbasic-rarity
+  "Return the rarity of any non-basic-land card; for the basics, return
+  :basic-land."
+  [card]
+  (if (basic-land? card)
+    :basic-land
+    (:rarity card)))
+
 (defn dfc?
   [card]
   (= (:layout card) "double-faced"))
@@ -333,13 +341,10 @@
         special-processor (special-booster-set-processor code identity)
         extraneous-card? (fn/any?
                            second-part?
-                           (extraneous-card-predicate code (constantly false)))
-        rarity-or-basic-land (fn [c] (if (basic-land? c)
-                                       :basic-land
-                                       (:rarity c)))]
+                           (extraneous-card-predicate code (constantly false)))]
     (-> set
       (update :cards (partial remove extraneous-card?))
-      (update :cards (partial group-by rarity-or-basic-land))
+      (update :cards (partial group-by nonbasic-rarity))
       move-dfcs
       (update :booster (partial postwalk keywordize-string))
       (update :booster (partial remove #{:marketing}))
@@ -646,7 +651,7 @@
 
 (defn cards->booster
   [cards]
-  (-> (group-by :rarity cards)
+  (-> (group-by nonbasic-rarity cards)
     (merge-values :rare :mythic-rare)))
 
 (defn print-booster
