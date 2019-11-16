@@ -367,12 +367,12 @@
                    (assoc :EMN (data/eldritch-moon)))
         process-card (comp keywordize-and-categorize summon-snakes trim-raw-card)]
     (into {} (for [[code mtg-set] raw-sets
+                   :let [mtg-set (set/rename-keys mtg-set set-field-translations)]
                    :when (and (not= (:type mtg-set) "promo")
                               (not (contains? ignored-sets code)))]
                [code
                 (-> mtg-set
                   (update :cards (partial map process-card))
-                  (set/rename-keys set-field-translations)
                   link-composites
                   (cond->
                     (:booster mtg-set)
