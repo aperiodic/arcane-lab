@@ -1,66 +1,65 @@
 (ns arcane-lab.images
-  (:import org.apache.http.cookie.MalformedCookieException)
-  (:require [arcane-lab.utils :refer [now-rfc822]]
+  (:import java.lang.Thread
+           org.apache.http.cookie.MalformedCookieException)
+  (:require [arcane-lab.external.scryfall :as scryfall]
+            [arcane-lab.utils :refer [now-rfc822]]
+            [clojure.java.io :as io]
             [compojure.core :refer [routes GET]]
             [puppetlabs.http.client.sync :as http]
             [ring.middleware.not-modified :refer [wrap-not-modified]]))
 
-(def sources [:gatherer])
-(def startup-time (now-rfc822))
-
-(def source->url-fn
-  (sorted-map-by #(< (.indexOf sources %1) (.indexOf sources %2))
-    :gatherer (fn [m-id] (str "http://gatherer.wizards.com/Handlers/Image.ashx?type=card&multiverseid="
-                              m-id))))
 
 (def acceptable-status? #{304 200})
+(def response-304 {:status 304, :headers {"content-type" "text/plain"}})
 
-(defn get-card-image
-  [source m-id req]
-  {:pre [(contains? source->url-fn source)]}
-  (if (get-in req [:headers "if-modified-since"])
-    {:status 304, :headers {"content-type" "text/html"}} ;; always 304 if they seem to have it
-    (try (http/get ((source->url-fn source) m-id))
-      (catch java.net.UnknownHostException _
-        {:status 404}))))
+(def cacheable-headers
+  ["age" "cache-control" "content-type" "content-length" "date" "etag" "last-modified" ])
 
-(defn successful-gatherer-response?
+(defn content-length
   [resp]
-  (or (not= (get-in resp [:content-type :mime-type]) "text/html")
-      (not (re-find #"^http://gatherer\.wizards\.com" (get-in resp [:opts :url])))))
+  (Integer/parseInt (get-in resp [:headers "content-length"])))
 
-(defn image-and-source
-  [multiverse-id req]
-  (loop [sources sources]
-    (if-let [source (first sources)]
-      (let [{:keys [status] :as resp} (get-card-image source multiverse-id req)]
-        (if (and (acceptable-status? status) (successful-gatherer-response? resp))
-          [source resp]
-          (recur (next sources))))
-      ;; else (no more sources left -- utter failure!)
-      [nil {:status 404
-            :body (str "Could not find image for multiverse-id")}])))
+(defn ->cacheable-resp
+  [resp multiverse-id]
+  (let [body-bytes (byte-array (content-length resp))]
+    (.read (:body resp) body-bytes)
+    {:status 200
+     :headers (-> (:headers resp)
+                (select-keys cacheable-headers))
+     :body body-bytes}))
 
-(defn source-memoized-best-image
+(defn- get-from-cache
+  "When retrieving from the cache, the body is a byte array, which needs to be
+  wrapped up in an InputStream before sending the response to ring."
+  [!cache multiverse-id]
+  (if-let [resp (get @!cache multiverse-id)]
+    (update resp :body io/input-stream)))
+
+(defn cached-image-resp
+  "Find the image response for card with the `multiverse-id`, placing that
+  response in `!cache` atom on a cache miss."
+  [!cache multiverse-id]
+  (Thread/sleep (rand-int 1000))
+  (if-let [cached-resp (get-from-cache !cache multiverse-id)]
+    cached-resp
+    (let [img-resp (scryfall/card-img multiverse-id)
+          cacheable-resp (->cacheable-resp img-resp multiverse-id)]
+      (swap! !cache assoc multiverse-id cacheable-resp)
+      (println "caching resp:" cacheable-resp)
+      (recur !cache multiverse-id))))
+
+(defn memoized-card-image
   [!cache]
   (fn [multiverse-id req]
-    (-> (if-let [source (get @!cache multiverse-id)]
-          (get-card-image source multiverse-id req)
-          (let [[source result] (image-and-source multiverse-id req)]
-            (swap! !cache assoc multiverse-id source)
-            result))
-      (update-in [:headers "last-modified"] (fnil identity startup-time)))))
+    (if (get-in req [:headers "if-modified-since"])
+      response-304
+      (try (cached-image-resp !cache multiverse-id)
+        (catch java.net.UnknownHostException _
+          {:status 404})))))
 
 (defn image-routes
   ([] (image-routes (atom {})))
   ([!cache]
-   (let [best-image (source-memoized-best-image !cache)]
+   (let [card-image (memoized-card-image !cache)]
     (GET "/:m-id" [m-id :as req]
-             (let [{:keys [status headers body]} (best-image m-id req)
-                   {:strs [content-type content-length last-modified]} headers]
-               (cond-> {:status status
-                        :body body}
-                 (acceptable-status? status)
-                 (update-in [:headers] (partial merge {"content-type" content-type
-                                                       "content-length" content-length
-                                                       "last-modified" last-modified}))))))))
+      (card-image m-id req)))))
