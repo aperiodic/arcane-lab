@@ -37,16 +37,15 @@
     (update resp :body io/input-stream)))
 
 (defn cached-image-resp
-  "Find the image response for card with the `multiverse-id`, placing that
-  response in `!cache` atom on a cache miss."
+  "Find the image response for card with the `multiverse-id`, looking first in
+  the `!cache` atom and requesting it from scryfall (and putting it in the
+  `!cache`) on a miss."
   [!cache multiverse-id]
-  (Thread/sleep (rand-int 1000))
   (if-let [cached-resp (get-from-cache !cache multiverse-id)]
     cached-resp
     (let [img-resp (scryfall/card-img multiverse-id)
           cacheable-resp (->cacheable-resp img-resp multiverse-id)]
       (swap! !cache assoc multiverse-id cacheable-resp)
-      (println "caching resp:" cacheable-resp)
       (recur !cache multiverse-id))))
 
 (defn memoized-card-image
