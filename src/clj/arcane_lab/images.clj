@@ -13,7 +13,8 @@
 (def response-304 {:status 304, :headers {"content-type" "text/plain"}})
 
 (def cacheable-headers
-  ["age" "cache-control" "content-type" "content-length" "date" "etag" "last-modified" ])
+  ["age" "cache-control" "content-type" "content-length" "date" "etag"
+   "last-modified"])
 
 (defn content-length
   [resp]
