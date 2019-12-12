@@ -143,7 +143,7 @@
                     " • Lab Maniac is in no way affiliated with Wizards of the Coast")
            (dom/div #js {:className "disclaimer"}
                     "Data from " (dom/a #js {:href "http://mtgjson.com"} "mtgjson.com")
-                    ", images from " (dom/a #js {:href "http://magiccards.info"} "magiccards.info & Gatherer")
+                    ", images from " (dom/a #js {:href "https://scryfall.com"} "Scryfall")
                     " • Made by Dan Lidral-Porter")))
 
 (defn cards
