@@ -172,9 +172,17 @@
   'Who/What/When/Where/Why', which gets numbers 120.0, 120.5, 120.6, 120.7, and
   120.8 for each of the sub-cards in order."
   [number-string]
-  (when number-string
+  (cond
+    (nil? number-string)
+    nil
+
+    ;; if collector number doesn't even start with an integer, bail out
+    (nil? (str->long number-string))
+    number-string
+
+    :else ;; collector number must at least start with an integer
     (if-let [side (re-find #"a|b|c|d|e" number-string)]
-      (+ (Integer/parseInt (re-find #"^\d+" number-string))
+      (+ (str->long number-string)
          (case side
            "a" 0.0
            "b" 0.5
