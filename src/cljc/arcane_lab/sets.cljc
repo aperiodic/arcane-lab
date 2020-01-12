@@ -6,9 +6,9 @@
     :INV :PLS (keyword "7ED") :APC :ODY :TOR :JUD :ONS :LGN :SCG
     (keyword "8ED") :MRD :DST (keyword "5DN") :UNH :CHK :BOK :SOK
     (keyword "9ED") :RAV :GPT :DIS :CSP (keyword "10E") :LRW :MOR :SHM :EVE :ALA
-    :CON :ARB :M10 :ZEN :WWK :ROE :M11 :SOM :MBS :NPH :M12 :ISD :DKA :AVR :M13
-    :RTR :GTC :DGM :M14 :THS :BNG :JOU :M15 :KTK :FRF :DTK :ORI :BFZ :OGW :SOI
-    :EMN :KLD :AER :AKH :HOU :XLN :RIX :DOM :M19 :GRN :RNA :WAR :M20 :ELD})
+    :CON :ARB :M10 :ZEN :WWK :ROE :M11 :SOM :MBS :NPH :M12 :AVR :M13
+    :RTR :GTC :DGM :M14 :THS :BNG :JOU :M15 :KTK :FRF :DTK :ORI :BFZ :OGW
+    :KLD :AER :AKH :HOU :XLN :DOM :M19 :GRN :RNA :WAR :M20 :ELD})
 
 (def sets-that-dont-work
   #{:EMA :MM2 :CNS :MMA :FUT :PLC :TSP :TSB :PTK :UGL :ALL :HML :CHR :FEM :DRK
