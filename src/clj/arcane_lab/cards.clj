@@ -124,24 +124,33 @@
     ;; TODO: fix Conspiracy 2 by adding support for draft matters booster slot
     :CN2})
 
-(def extraneous-card-predicate
+(defn extraneous-card-predicate
   "This is for sets that need to have some cards removed that are technically in
   the set for some reason but do not appear in the set's booster packs. It's
   a mapping between a (keyword) set code and a predicate function that detects
   these extraneous cards."
-  {:8ED #(string? (:number %)) ;; Cards printed in intro decks but not in boosters for these two
-   :9ED #(string? (:number %)) ;; sets have collector numbers like "S1", which are left as strings
-                               ;; by the parse-collector-number function below.
-   :EMN :melded
-   :XLN #(> (:number %) 279)   ;; Often sets have extra cards printed for the introductory
-   :AKH #(> (:number %) 269)   ;; Planeswalker decks that are technically in the set but don't show
-   :ORI #(> (:number %) 272)   ;; up in booster packs
-   :M19 #(> (:number %) 280)
-   :KLD #(> (str->long (:number %)) 264)
-   :GRN (fn [c]
-          (or (> (:number c) 259)
-              ;; this gets rid of the second printing of each Guildgate
-              (.endsWith (:name c) " (b)")))})
+  [the-set]
+  (let [no-multiverse-id? #(not (contains? % :multiverse-id))
+        ;; Often sets have extra cards printed for the introductory Planeswalker
+        ;; decks that are technically in the set but don't show up in boosters.
+        ;; These cards have a collector number larger than the set's size.
+        number-too-big? (fn [card]
+                          (let [collector-number (-> (:number card) str->long (or 0))]
+                            (> collector-number (:base-set-size the-set))))
+        GRN-RNA-second-guild-gate? (fn [c] (.endsWith (:name c) " (b)"))]
+
+    (case (-> (:code the-set) keyword)
+      :8ED #(string? (:number %)) ;; Cards in these sets that were printed in
+      :9ED #(string? (:number %)) ;; decks but not boosters have numbers like
+                                  ;; "S1", which are left as strings by the
+                                  ;; `parse-collector-number` function below.
+      :EMN :melded
+      (:GRN :RNA) (fn/any? no-multiverse-id?
+                           number-too-big?
+                           GRN-RNA-second-guild-gate?)
+
+      ;default
+      (fn/any? no-multiverse-id? number-too-big?))))
 
 (defn trim-raw-card
   "Given a raw card map (i.e. loaded directly from cards-by-set.json), return
@@ -192,8 +201,10 @@
         (assoc-in [:other-part :color-identity] ids)))))
 
 (def set-field-translations
-  {:boosterV3 :booster,
-   :releaseDate :release-date})
+  {:baseSetSize :base-set-size,
+   :boosterV3 :booster,
+   :releaseDate :release-date
+   :totalSetSize :total-set-size})
 
 (def card-field-translations
   {:borderColor :border-color
@@ -341,7 +352,7 @@
         special-processor (special-booster-set-processor code identity)
         extraneous-card? (fn/any?
                            second-part?
-                           (extraneous-card-predicate code (constantly false)))]
+                           (extraneous-card-predicate booster-set))]
     (-> booster-set
       (update :cards (partial remove extraneous-card?))
       (update :cards (partial group-by nonbasic-rarity))
