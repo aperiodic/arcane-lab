@@ -15,11 +15,19 @@
   (pos? (mod n 1)))
 
 (defn str->long
+  "If `x` is a string that starts with an integer (or is entirely comprised of
+  an integer), return the value of that integer. (If `x` is a already an integer
+  number, return that). Otherwise, return nil."
   [x]
-  (let [str-x (if (char? x) (str x) x)]
-    (try (Long/parseLong str-x)
-      (catch NumberFormatException _
-        nil))))
+  (cond
+    (integer? x)
+    x
+
+    (or (string? x) (char? x))
+    (let [str-x (if (char? x) (str x) x)
+          digits (re-find #"^[0-9]+" str-x)]
+      (if digits
+        (Long/parseLong digits)))))
 
 (defn words->key
   [words]
