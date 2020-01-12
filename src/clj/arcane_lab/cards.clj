@@ -347,7 +347,7 @@
       (update :cards (partial group-by nonbasic-rarity))
       move-dfcs
       (update :booster (partial postwalk keywordize-string))
-      (update :booster (partial remove #{:marketing}))
+      (update :booster (partial remove #{:marketing :token}))
       special-processor)))
 
 ;;
