@@ -160,7 +160,9 @@
           :foreignData
           :tcgplayerProductId
           :tcgplayerPurchaseUrl
-          :rulings))
+          :rulings
+          :prices
+          :purchaseUrl))
 
 (defn parse-collector-number
   "Parse a collector number to an integer or float. Most parsed collector
