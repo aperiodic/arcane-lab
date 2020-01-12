@@ -332,17 +332,17 @@
     - remove the marketing slot from booster specs
     - perform any special processing particular to the set
   "
-  [set]
+  [booster-set]
   (let [keywordize-string (fn [x]
                             (if (string? x)
                               (words->key x)
                               x))
-        code (-> set :code keyword)
+        code (-> booster-set :code keyword)
         special-processor (special-booster-set-processor code identity)
         extraneous-card? (fn/any?
                            second-part?
                            (extraneous-card-predicate code (constantly false)))]
-    (-> set
+    (-> booster-set
       (update :cards (partial remove extraneous-card?))
       (update :cards (partial group-by nonbasic-rarity))
       move-dfcs
@@ -380,11 +380,10 @@
                                             code
                                             (str "6" (name code))))))]))))
 
-
 (def booster-sets
-  (into {} (for [[code set] all-sets
-                 :when (contains? set :booster)]
-             [code (process-booster-set set)])))
+  (into {} (for [[code mtg-set] all-sets
+                 :when (contains? mtg-set :booster)]
+               [code (process-booster-set mtg-set)])))
 
 ;;
 ;; Set Predicates
