@@ -3,7 +3,7 @@
             [arcane-lab.data :as data]
             [arcane-lab.sets :as sets]
             [arcane-lab.utils :refer [fractional? integral? rand-seed sample
-                                      seeded-rng words->key]]
+                                      seeded-rng str->long words->key]]
             [bigml.sampling.simple]
             [cheshire.core :as json]
             [clojure.java.io :as io]
@@ -135,9 +135,9 @@
    :EMN :melded
    :XLN #(> (:number %) 279)   ;; Often sets have extra cards printed for the introductory
    :AKH #(> (:number %) 269)   ;; Planeswalker decks that are technically in the set but don't show
-   :KLD #(> (:number %) 264)   ;; up in booster packs
-   :ORI #(> (:number %) 272)
+   :ORI #(> (:number %) 272)   ;; up in booster packs
    :M19 #(> (:number %) 280)
+   :KLD #(> (str->long (:number %)) 264)
    :GRN (fn [c]
           (or (> (:number c) 259)
               ;; this gets rid of the second printing of each Guildgate
