@@ -252,6 +252,8 @@
     4 - add the boolean predicate fields :dfc? and :composite?"
   [card]
   (-> card
+    (update :border-color keyword)  ;; there's only a handful of unique values
+    (update :frame-version keyword) ;; for these fields, so intern them as KWs
     (update :colors (partial mapv words->key))
     (update :color-identity (partial mapv color/abbrev->color))
     (update :rarity words->key)
